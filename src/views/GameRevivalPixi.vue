@@ -11,6 +11,11 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+import { useGameStore } from '../store'
+
+const router = useRouter()
+const store = useGameStore()
 
 // ========= 解像度設計 =========
 const LO_W = 450, LO_H = 300
@@ -527,8 +532,15 @@ function resetRun(){
   buildStage()
 }
 async function nextLevel(){
-  if(state.level<3){ state.level++; buildStage() }
-  else { state.cleared = true; state.mode='clear'; state.message=null }
+  if(state.level<3){
+    state.level++
+    buildStage()
+  } else {
+    state.cleared = true
+    state.mode='clear'
+    state.message = null
+    store.revivalCleared = true
+  }
 }
 
 function startGame(){ state.mode='play'; resetRun() }
@@ -555,7 +567,11 @@ function loop(ts){
   if(state.mode==='clear'){
     // 背景に最後のステージをうっすら（任意：ここでは暗転のみ）
     drawGameClearScreen()
-    if(justPressed('e')){ state.mode='title'; state.cleared=false; state.message=null }
+    if(justPressed('e')){
+      store.dmIndex = 0
+      router.push('/')
+      return
+    }
     ctx.imageSmoothingEnabled=false
     ctx.clearRect(0,0,W,H)
     ctx.drawImage(lo, 0,0,LO_W,LO_H, 0,0, W, H)
