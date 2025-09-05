@@ -18,17 +18,34 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useGameStore } from '../store'
 import ChatBubble from '../components/ChatBubble.vue'
 import RetroButton from '../components/RetroButton.vue'
-import dm from '../data/dm_prologue.json'
+import dmPrologue from '../data/dm_prologue.json'
+import dmAfter from '../data/dm_after_revival.json'
 
 const router = useRouter()
+const store = useGameStore()
+
+const dm = computed(() => {
+  if(!store.revivalCleared) return dmPrologue
+  if(!store.seenBBS) return dmAfter
+  return [{ from: '主人公', text: '（ここから先は未実装）' }]
+})
+
 const idx = ref(0)
-const visible = computed(()=> dm.slice(0, idx.value+1) )
-const isLast = computed(()=> idx.value >= dm.length - 1 )
-const ctaLabel = computed(()=> isLast.value ? '復刻版を起動' : '次へ' )
+watch(dm, () => { idx.value = 0 })
+
+const visible = computed(()=> dm.value.slice(0, idx.value+1) )
+const isLast = computed(()=> idx.value >= dm.value.length - 1 )
+
+const ctaLabel = computed(()=>{
+  if(!store.revivalCleared) return isLast.value ? '復刻版を起動' : '次へ'
+  if(!store.seenBBS) return isLast.value ? '掲示板へ' : '次へ'
+  return '…'
+})
 
 const chatRef = ref(null)
 function scrollToBottom(){
@@ -43,8 +60,11 @@ function next(){
     idx.value++
     scrollToBottom()
   } else {
-    // 最後のクリックで復刻版へ
-    router.push('/revival')
+    if(!store.revivalCleared){
+      router.push('/revival')
+    } else if(!store.seenBBS){
+      router.push('/bbs')
+    }
   }
 }
 </script>
