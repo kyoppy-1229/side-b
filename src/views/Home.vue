@@ -25,7 +25,18 @@
       </div>
     </div>
     <div class="toolbar dm-toolbar">
-      <RetroButton @click="next">{{ ctaLabel }}</RetroButton>
+      <div v-if="isWaitingInput" class="dm-inputbar">
+        <input
+          ref="inputRef"
+          v-model="inputValue"
+          class="dm-input"
+          type="text"
+          :placeholder="inputPlaceholder"
+          @keyup.enter="sendInput"
+        />
+        <RetroButton :disabled="isSendDisabled" @click="sendInput">{{ sendLabel }}</RetroButton>
+      </div>
+      <RetroButton v-else @click="next">{{ ctaLabel }}</RetroButton>
     </div>
   </div>
 </template>
@@ -38,6 +49,7 @@ import ChatBubble from '../components/ChatBubble.vue'
 import RetroButton from '../components/RetroButton.vue'
 import dmPrologue from '../data/dm_prologue.json'
 import dmAfter from '../data/dm_after_revival.json'
+import dmAfterBBS from '../data/dm_after_bbs.json'
 import mizunoAvatar from '../photo/solo/水野ヒロキ.png'
 
 const router = useRouter()
@@ -46,22 +58,62 @@ const store = useGameStore()
 const dm = computed(() => {
   if(!store.revivalCleared) return dmPrologue
   if(!store.seenBBS) return dmAfter
-  return [{ from: '主人公', text: '（ここから先は未実装）' }]
+  return dmAfterBBS
 })
 
-const idx = ref(0)
-watch(dm, () => { idx.value = 0 })
+const script = ref([])
+const idx = ref(-1)
+const inputIndex = ref(null)
+const inputValue = ref('')
+const chatRef = ref(null)
+const inputRef = ref(null)
 
-const visible = computed(()=> dm.value.slice(0, idx.value+1) )
-const isLast = computed(()=> idx.value >= dm.value.length - 1 )
+watch(
+  dm,
+  newVal => {
+    script.value = newVal.map(entry => {
+      const copy = { ...entry }
+      if(entry.input){
+        copy.input = { ...entry.input }
+        copy.text = entry.text || ''
+        copy.sent = false
+      }
+      return copy
+    })
+    idx.value = -1
+    inputIndex.value = null
+    inputValue.value = ''
+    revealNext()
+  },
+  { immediate: true }
+)
+
+const visible = computed(() => {
+  if(idx.value < 0) return []
+  return script.value.slice(0, idx.value + 1).filter(entry => !entry.input || entry.sent)
+})
+
+const isLast = computed(() => script.value.length > 0 && idx.value >= script.value.length - 1)
+
+const pendingInput = computed(() => (inputIndex.value === null ? null : script.value[inputIndex.value]))
+const isWaitingInput = computed(() => !!pendingInput.value)
+const inputPlaceholder = computed(() => pendingInput.value?.input?.placeholder || '')
+const sendLabel = computed(() => pendingInput.value?.input?.buttonLabel || '送信')
+const isSendDisabled = computed(() => {
+  if(!isWaitingInput.value) return true
+  const value = inputValue.value.trim()
+  if(!value) return true
+  const expected = pendingInput.value?.input?.expected
+  if(!expected) return false
+  return value !== expected
+})
 
 const ctaLabel = computed(()=>{
   if(!store.revivalCleared) return isLast.value ? '復刻版を起動' : '次へ'
   if(!store.seenBBS) return isLast.value ? '掲示板へ' : '次へ'
-  return '…'
+  return isLast.value ? '初期版を起動' : '次へ'
 })
 
-const chatRef = ref(null)
 function scrollToBottom(){
   nextTick(()=>{
     const el = chatRef.value
@@ -70,16 +122,60 @@ function scrollToBottom(){
 }
 
 function next(){
-  if(!isLast.value){
-    idx.value++
-    scrollToBottom()
-  } else {
+  if(isWaitingInput.value) return
+  if(idx.value < script.value.length - 1){
+    revealNext()
+  } else if(script.value.length){
     if(!store.revivalCleared){
       router.push('/revival')
     } else if(!store.seenBBS){
       router.push('/bbs')
+    } else {
+      store.routeUnlocked = true
+      router.push('/initial')
     }
   }
+}
+
+function revealNext(){
+  if(!script.value.length) return
+  if(idx.value >= script.value.length - 1) return
+  const nextIdx = idx.value + 1
+  const entry = script.value[nextIdx]
+  if(entry?.input && !entry.sent){
+    openInput(nextIdx)
+    return
+  }
+  idx.value = nextIdx
+  scrollToBottom()
+}
+
+function openInput(index){
+  inputIndex.value = index
+  const entry = script.value[index]
+  const defaultText = entry.input?.prefill ?? ''
+  inputValue.value = defaultText
+  nextTick(() => {
+    const el = inputRef.value
+    if(el){
+      el.focus()
+      if(defaultText && el.setSelectionRange){
+        const len = defaultText.length
+        el.setSelectionRange(len, len)
+      }
+    }
+  })
+}
+
+function sendInput(){
+  if(!isWaitingInput.value || isSendDisabled.value) return
+  const entry = script.value[inputIndex.value]
+  entry.text = inputValue.value.trim()
+  entry.sent = true
+  idx.value = inputIndex.value
+  inputIndex.value = null
+  inputValue.value = ''
+  scrollToBottom()
 }
 </script>
 
@@ -152,6 +248,34 @@ function next(){
 .dm-toolbar :deep(.btn:active){
   transform:translateY(0);
   box-shadow:0 10px 24px rgba(78,126,255,0.22);
+}
+.dm-inputbar{
+  flex:1;
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.dm-input{
+  flex:1;
+  padding:12px 18px;
+  border-radius:999px;
+  border:1px solid #c9d6ff;
+  background:#fff;
+  font-size:14px;
+  color:#27345c;
+  box-shadow:inset 0 8px 20px rgba(78,126,255,0.08);
+  transition:border-color 0.15s ease,box-shadow 0.15s ease;
+}
+.dm-input:focus{
+  outline:none;
+  border-color:#6f9dff;
+  box-shadow:0 0 0 3px rgba(111,157,255,0.22);
+}
+.dm-toolbar :deep(.btn:disabled){
+  opacity:0.6;
+  cursor:not-allowed;
+  transform:none;
+  box-shadow:0 10px 24px rgba(78,126,255,0.18);
 }
 @media (max-width:640px){
   .dm-header{flex-direction:column;align-items:flex-start;gap:12px}
