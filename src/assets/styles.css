@@ -86,7 +86,7 @@ footer{opacity:.7;margin-top:24px;font-size:12px}
 
 /* Chat area: fixed height & scroll, append at bottom */
 .chatbox {
-  height: 520px;
+  height: 430px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
