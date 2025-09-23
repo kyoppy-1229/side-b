@@ -20,21 +20,25 @@
           :key="idx"
           :from="m.from"
           :text="m.text"
+          :image="m.image"
           :me="m.from==='主人公'"
         />
       </div>
     </div>
     <div class="toolbar dm-toolbar">
       <div v-if="isWaitingInput" class="dm-inputbar">
-        <input
-          ref="inputRef"
-          v-model="inputValue"
-          class="dm-input"
-          type="text"
-          :placeholder="inputPlaceholder"
-          @keyup.enter="sendInput"
-        />
-        <RetroButton :disabled="isSendDisabled" @click="sendInput">{{ sendLabel }}</RetroButton>
+        <div v-if="inputHelper" class="dm-input-hint">{{ inputHelper }}</div>
+        <div class="dm-inputrow">
+          <input
+            ref="inputRef"
+            v-model="inputValue"
+            class="dm-input"
+            type="text"
+            :placeholder="inputPlaceholder"
+            @keyup.enter="sendInput"
+          />
+          <RetroButton :disabled="isSendDisabled" @click="sendInput">{{ sendLabel }}</RetroButton>
+        </div>
       </div>
       <RetroButton v-else @click="next">{{ ctaLabel }}</RetroButton>
     </div>
@@ -55,6 +59,8 @@ import mizunoAvatar from '../photo/solo/水野ヒロキ.png'
 const router = useRouter()
 const store = useGameStore()
 
+const mediaAssets = import.meta.glob('../photo/**/*', { eager: true, query: '?url', import: 'default' })
+
 const dm = computed(() => {
   if(!store.revivalCleared) return dmPrologue
   if(!store.seenBBS) return dmAfter
@@ -68,6 +74,31 @@ const inputValue = ref('')
 const chatRef = ref(null)
 const inputRef = ref(null)
 
+function resolveMediaPath(path){
+  if(!path) return ''
+  const trimmed = path.trim()
+  if(!trimmed) return ''
+  const normalized = trimmed.startsWith('../')
+    ? trimmed
+    : `../${trimmed.replace(/^\.\//, '').replace(/^\//, '')}`
+  return mediaAssets[normalized] || ''
+}
+
+function normalizeImage(image){
+  if(!image) return null
+  if(typeof image === 'string'){
+    const src = resolveMediaPath(image)
+    return src ? { src, alt: '共有された画像', caption: '' } : null
+  }
+  const src = resolveMediaPath(image.src || '')
+  if(!src) return null
+  return {
+    src,
+    alt: image.alt || '共有された画像',
+    caption: image.caption || ''
+  }
+}
+
 watch(
   dm,
   newVal => {
@@ -77,6 +108,14 @@ watch(
         copy.input = { ...entry.input }
         copy.text = entry.text || ''
         copy.sent = false
+      }
+      if(entry.image){
+        const normalized = normalizeImage(entry.image)
+        if(normalized){
+          copy.image = normalized
+        } else {
+          delete copy.image
+        }
       }
       return copy
     })
@@ -98,6 +137,7 @@ const isLast = computed(() => script.value.length > 0 && idx.value >= script.val
 const pendingInput = computed(() => (inputIndex.value === null ? null : script.value[inputIndex.value]))
 const isWaitingInput = computed(() => !!pendingInput.value)
 const inputPlaceholder = computed(() => pendingInput.value?.input?.placeholder || '')
+const inputHelper = computed(() => pendingInput.value?.input?.helper || '')
 const sendLabel = computed(() => pendingInput.value?.input?.buttonLabel || '送信')
 const isSendDisabled = computed(() => {
   if(!isWaitingInput.value) return true
@@ -252,8 +292,20 @@ function sendInput(){
 .dm-inputbar{
   flex:1;
   display:flex;
+  flex-direction:column;
+  gap:10px;
+  width:100%;
+}
+.dm-inputrow{
+  display:flex;
   gap:12px;
   align-items:center;
+}
+.dm-input-hint{
+  font-size:12px;
+  color:#4a5fae;
+  padding:0 6px;
+  line-height:1.5;
 }
 .dm-input{
   flex:1;

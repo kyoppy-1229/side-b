@@ -20,6 +20,14 @@
     "text": "そういや卒業式で配られた青い鳥のぬいぐるみ、まだ持ってる？"
   },
   {
+    "from": "水野",
+    "text": "",
+    "image": {
+      "src": "photo/鳥.jpg",
+      "alt": "卒業式で配られた青い鳥のぬいぐるみの写真"
+    }
+  },
+  {
     "from": "主人公",
     "text": "ん？なんで急にぬいぐるみ？押入れにあると思うけど"
   },
@@ -41,7 +49,8 @@
     "input": {
       "expected": "見つけた",
       "placeholder": "「見つけた」と入力",
-      "buttonLabel": "送信"
+      "buttonLabel": "送信",
+      "helper": "入力する言葉: 「見つけた」"
     }
   },
   {
@@ -86,7 +95,8 @@
     "input": {
       "expected": "確認した",
       "placeholder": "「確認した」と入力",
-      "buttonLabel": "送信"
+      "buttonLabel": "送信",
+      "helper": "入力する言葉: 「確認した」"
     }
   },
   {
@@ -103,7 +113,8 @@
     "input": {
       "expected": "QRを読み込んだ",
       "placeholder": "「QRを読み込んだ」と入力",
-      "buttonLabel": "送信"
+      "buttonLabel": "送信",
+      "helper": "入力する言葉: 「QRを読み込んだ」"
     }
   },
   {
@@ -132,7 +143,8 @@
     "input": {
       "expected": "アクセスコードを入力した",
       "placeholder": "「アクセスコードを入力した」と入力",
-      "buttonLabel": "送信"
+      "buttonLabel": "送信",
+      "helper": "入力する言葉: 「アクセスコードを入力した」"
     }
   },
   {
@@ -153,7 +165,8 @@
     "input": {
       "expected": "アーカイブを確認した",
       "placeholder": "「アーカイブを確認した」と入力",
-      "buttonLabel": "送信"
+      "buttonLabel": "送信",
+      "helper": "入力する言葉: 「アーカイブを確認した」"
     }
   },
   {
