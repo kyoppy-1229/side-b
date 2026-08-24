@@ -1,8 +1,16 @@
 // Bitmap art supplied by the visual pass. Vite expands this glob at build
 // time; the manifest below is also consumed by Node-based contract checks.
-const generatedFiles = typeof import.meta.glob === 'function'
-  ? import.meta.glob('../../assets/web/generated/*.{png,jpg,jpeg,webp}', { eager: true, import: 'default' })
-  : {}
+// The call must stay unguarded: Vite only rewrites a direct `import.meta.glob`
+// call, so wrapping it in a `typeof` check leaves the check itself in the
+// bundle, where `import.meta.glob` is undefined and the map would silently come
+// back empty. Node-based contract checks have no glob helper at all, so the
+// TypeError they hit here is caught and falls back to an empty map.
+let generatedFiles = {}
+try{
+  generatedFiles = import.meta.glob('../../assets/web/generated/*.{png,jpg,jpeg,webp}', { eager: true, import: 'default' })
+}catch{
+  generatedFiles = {}
+}
 
 function keyFromPath(path){
   return path.split('/').pop().replace(/\.(?:png|jpe?g|webp)$/i, '')
