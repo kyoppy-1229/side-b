@@ -74,10 +74,18 @@ let tab = browser.openVirtualUrl(VIRTUAL_URLS.GAME_REVIVAL)
 assert.equal(tab.pageType, VIRTUAL_PAGE_TYPES.ERROR, '共有前の復刻版は開けない')
 browser.closeTab(tab.id)
 
-// ---- and neither is the saved log ------------------------------------------
+// ---- the saved log, on the other hand, waits for nobody ---------------------
+// Nothing shares its address, so finding it is the puzzle: a player who works it
+// out this early may read it, and it still moves no part of the story.
 tab = browser.openVirtualUrl(VIRTUAL_URLS.BBS_THREAD)
-assert.equal(tab.pageType, VIRTUAL_PAGE_TYPES.ERROR, '水野が書く前の保存ログは開けない')
+assert.equal(tab.pageType, VIRTUAL_PAGE_TYPES.WEB_SITE, '住所が分かればいつでも読める')
+assert.equal(story.step, 'reunion', '読んでも物語は動かない')
+assert.equal(flow.isTrialBbsFound(story), true, '読んだことは記録される')
 browser.closeTab(tab.id)
+// …and from here the walk follows the ordinary route instead: the note is put
+// back so the rest of this file can watch the player find it after 水野's hint.
+story.markMilestone(flow.TRIAL_MILESTONES.BBS_FOUND, false)
+assert.equal(flow.isTrialBbsFound(story), false)
 
 // ---- prologue ---------------------------------------------------------------
 for(const event of [
@@ -148,7 +156,7 @@ assert.equal(flow.completeTrialRevival(story), false, '報告は一度きり')
 assert.equal(story.step, 'exploration_complete')
 assert.equal(flow.isTrialAfterRevivalChat(story), true)
 assert.equal(story.chapter, STORY_CHAPTERS.CH1_REVIVAL, '体験版は第2章へ行かない')
-assert.equal(flow.canOpenTrialArchive(story), true, 'ここから保存ログの住所が通る')
+assert.equal(flow.canOpenTrialArchive(), true, '保存ログの住所は体験版では常に通る')
 assert.equal(flow.isTrialBbsFound(story), false, 'まだ見つけていない')
 
 // ---- 水野's last message, rendered from the real thread ---------------------

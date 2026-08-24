@@ -71,7 +71,8 @@ const {
   isTrialRevivalCleared,
   markTrialBbsFound,
   markTrialComplete,
-  openTrialRevival
+  openTrialRevival,
+  reopenUnfinishedTrial
 } = await import('../src/trial/flow.js')
 const { DEBUG_STORAGE_SCOPE } = await import('../src/debug/scope.js')
 const {
@@ -430,17 +431,18 @@ assert.equal(story.step, 'exploring')
 assert.equal(isTrialRevivalCleared(story), false)
 assert.equal(isTrialAfterRevivalChat(story), false)
 
-// Clearing the build is what makes 水野 write.
-assert.equal(canOpenTrialArchive(story), false, '水野が書く前に保存ログは開かない')
+// Clearing the build is what makes 水野 write. The saved log does not wait for
+// him: in the trial the address answers whenever the player works it out.
+assert.equal(canOpenTrialArchive(), true, '体験版では水野の話を待たない')
 assert.equal(completeTrialRevival(story), true)
 assert.equal(story.step, 'exploration_complete')
 assert.equal(isTrialRevivalCleared(story), true)
 assert.equal(isTrialAfterRevivalChat(story), true)
 assert.equal(completeTrialRevival(story), false, 'クリアは一度きり')
 
-// From here the saved log answers — nobody handed the address over, so finding
-// it is the player's own work. Opening it is recorded, and it moves no chapter.
-assert.equal(canOpenTrialArchive(story), true)
+// Nobody handed the address over, so finding it is the player's own work.
+// Opening it is recorded, and it moves no chapter.
+assert.equal(canOpenTrialArchive(), true)
 assert.equal(isTrialBbsFound(story), false)
 assert.equal(markTrialBbsFound(story), true)
 assert.equal(isTrialBbsFound(story), true)
@@ -465,6 +467,26 @@ setActivePinia(createPinia())
 story = useStoryStore()
 assert.equal(story.step, 'exploration_complete')
 assert.equal(isTrialComplete(story), true)
+assert.equal(reopenUnfinishedTrial(story), false, '読み終えた体験版はそのまま終わっている')
+assert.equal(isTrialComplete(story), true)
+
+// A save from the build where the trial ended at 水野's last line: it carries the
+// completion mark without ever having read the log. The run reopens instead of
+// showing the end screen over the browser for good.
+const staleStory = freshStory()
+playPrologue(staleStory)
+openTrialRevival(staleStory)
+completeTrialRevival(staleStory)
+assert.equal(markTrialComplete(staleStory), true)
+assert.equal(isTrialBbsFound(staleStory), false)
+assert.equal(reopenUnfinishedTrial(staleStory), true, '古いセーブは終了扱いを解除する')
+assert.equal(isTrialComplete(staleStory), false)
+assert.equal(canOpenTrialArchive(), true, '保存ログを探すところから続けられる')
+assert.equal(reopenUnfinishedTrial(staleStory), false, '解除は一度きり')
+// The full game never has either mark, so this can do nothing there.
+setGameMode(GAME_MODES.FULL)
+assert.equal(reopenUnfinishedTrial(staleStory), false, '通常版では何もしない')
+setGameMode(GAME_MODES.TRIAL)
 
 // 「最初から」 puts it all back.
 story.resetStory()
@@ -486,6 +508,7 @@ assert.equal(completeTrialRevival(story), false)
 assert.equal(isTrialAfterRevivalChat(story), false)
 assert.equal(markTrialComplete(story), false)
 assert.equal(isTrialComplete(story), false)
+assert.equal(canOpenTrialArchive(), false, '通常版に体験版の入口は無い')
 
 // ---------------------------------------------------------------------------
 // 8. what the trial does not hand out
@@ -538,7 +561,7 @@ assert.ok(virtualBrowserStoreSource.includes('guardTrialEdition(guardPrivateStor
 // The BBS keeps its own, older guard, with the trial's own way in beside it.
 assert.ok(virtualBrowserStoreSource.includes('function canOpenPrivateStoryArchive()'))
 assert.ok(virtualBrowserStoreSource.includes('STORY_MILESTONES.BBS_OPENED'))
-assert.ok(virtualBrowserStoreSource.includes('isTrialMode() && canOpenTrialArchive(story)'))
+assert.ok(virtualBrowserStoreSource.includes('|| canOpenTrialArchive()'))
 assert.ok(virtualBrowserStoreSource.includes('function noteTrialArchiveVisit(resolved)'))
 assert.ok(virtualBrowserStoreSource.includes('markTrialBbsFound(useStoryStore())'))
 // The new-tab shortcuts drop what the trial does not hand out.
@@ -596,6 +619,7 @@ assert.ok(chatAppSource.includes('storyState.dispatch(STORY_EVENTS.BBS_OPENED)')
 
 assert.ok(appSource.includes('<TrialEndScene v-if="showTrialEnd" />'))
 assert.ok(appSource.includes('isTrialComplete(storyState)'))
+assert.ok(appSource.includes('reopenUnfinishedTrial(storyState)'), '古いセーブを開き直す')
 assert.ok(appSource.includes('<ReunionScene v-else-if="showReunion" />'))
 assert.ok(appSource.includes('<DeviceSetupScene v-else-if="showDeviceSetup" />'))
 assert.ok(appSource.includes('<router-view v-else />'))

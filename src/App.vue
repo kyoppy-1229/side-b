@@ -25,12 +25,17 @@ import { STORY_PHASE_STORAGE_KEY, useGameStore } from './store/index.js'
 import { STORY_STATE_STORAGE_KEY, useStoryStore } from './store/story.js'
 import { STORY_CHAPTERS } from './story/chapters.js'
 import { isSandboxed } from './store/storage.js'
-import { isTrialComplete } from './trial/flow.js'
+import { isTrialComplete, reopenUnfinishedTrial } from './trial/flow.js'
 
 const route = useRoute()
 const gameSession = useGameSessionStore()
 const story = useGameStore()
 const storyState = useStoryStore()
+
+// A trial that was "finished" under the older rules (水野's last line ended it)
+// is not finished any more: the saved log came after it. Dropping the stale mark
+// before the first render is what puts such a save back inside the browser.
+reopenUnfinishedTrial(storyState)
 
 const showReunion = computed(() => (
   !route.meta.debugOnly &&
@@ -38,7 +43,7 @@ const showReunion = computed(() => (
   storyState.step === 'reunion'
 ))
 
-// The trial ends after 水野's message about the BBS; the mark is trial-only, so
+// The trial ends on the saved log the player found; the mark is trial-only, so
 // this is always false in the full game (see trial/flow.js).
 const showTrialEnd = computed(() => !route.meta.debugOnly && isTrialComplete(storyState))
 

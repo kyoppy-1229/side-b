@@ -114,9 +114,10 @@ function canOpenPrivateStoryArchive(){
   return story.hasMilestone(STORY_MILESTONES.BBS_OPENED)
     || story.hasReached(STORY_CHAPTERS.CH2_RECORDS_2015, 'bbs_opened')
     // The trial arrives from the other side. Nobody shares the address there, so
-    // finding it is the trial's last puzzle; the page answers once 水野 has
-    // written about the board, and the story stays where he left it.
-    || (isTrialMode() && canOpenTrialArchive(story))
+    // finding it is the puzzle, and the page answers whenever the player works
+    // it out — before 水野 mentions the board as much as after. Either way the
+    // story stays where it is; only the full game's rule above moves chapters.
+    || canOpenTrialArchive()
 }
 
 // The trial's own note that the player got there. It moves no chapter — it is

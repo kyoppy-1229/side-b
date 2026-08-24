@@ -9,12 +9,13 @@
 //   → ch1_revival/exploration_complete        ← every required memory recorded
 //   → 水野 writes about the BBS, and stops there.
 //
-// From that message on, the trial's last piece is the player's own: 水野 hands
-// over nothing, so the saved log has to be found on the ordinary web (the
-// board's notice thread, the 検索避け article — see sites/forumSites.js) and
-// opened by typing its address. Reading it is where the trial ends; the story
-// itself does not move, so no chapter, no chat beat and no page beyond the log
-// is reached.
+// The trial's last piece is the player's own, and it is not sequenced: 水野 hands
+// over nothing, so the saved log has to be found on the ordinary web (the board's
+// notice thread, the 検索避け article — see sites/forumSites.js) and opened by
+// typing its address. His message is a hint, not a lock: the address answers
+// whenever the player works it out. Reading it is where the trial ends; the story
+// itself does not move, so no chapter, no chat beat and no page beyond the log is
+// reached.
 //
 // The two marks below are trial-only, because the full game goes somewhere else
 // from `exploration_complete` (the private archive as a chapter, and everything
@@ -61,11 +62,15 @@ export function isTrialRevivalCleared(story){
   return isTrialMode() && story.hasMilestone(STORY_MILESTONES.REVIVAL_EXPLORATION_COMPLETE)
 }
 
-// The saved log. Nobody shares it, so the address is the trial's last puzzle —
-// but it only answers once 水野 has said the board existed, which keeps the
-// order of the trial intact even for a player who guesses the URL early.
-export function canOpenTrialArchive(story){
-  return isTrialRevivalCleared(story)
+// The saved log. Nobody shares it, so the address is the trial's own puzzle —
+// and the trial does not make the player wait for 水野 before looking: whoever
+// pieces the address together out of the ordinary web may read it whenever they
+// find it. His message is a hint, not a lock.
+//
+// The full game keeps its own rule (store/virtualBrowser.js): there the log
+// belongs to a chapter, and it opens only after 水野 has shared it.
+export function canOpenTrialArchive(){
+  return isTrialMode()
 }
 
 // The player got there. This records nothing about the story — the position
@@ -96,6 +101,19 @@ export function markTrialComplete(story){
 
 export function isTrialComplete(story){
   return isTrialMode() && story.hasMilestone(TRIAL_MILESTONES.COMPLETE)
+}
+
+// A save written by an older build can carry COMPLETE without BBS_FOUND: back
+// then the trial ended at 水野's last line, and the saved log was not findable
+// at all. It ends on the log now, so the stale mark is dropped and the run picks
+// up where he stopped writing — otherwise the end screen would cover the browser
+// for good and the log could never be reached. Called once while the shell is
+// deciding what to draw (App.vue); a no-op in the full game.
+export function reopenUnfinishedTrial(story){
+  if(!isTrialMode()) return false
+  if(!story.hasMilestone(TRIAL_MILESTONES.COMPLETE)) return false
+  if(story.hasMilestone(TRIAL_MILESTONES.BBS_FOUND)) return false
+  return story.markMilestone(TRIAL_MILESTONES.COMPLETE, false)
 }
 
 /**

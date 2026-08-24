@@ -5,9 +5,10 @@
 // are simply not reachable while the tab is running the trial — not by search,
 // not from the new-tab shortcuts, and not by typing the address.
 //
-// The log itself is not on this list. It is guarded by the story instead
-// (store/virtualBrowser.js), which opens it only after 水野 has written about
-// the board — the trial's own last puzzle, not a page it withholds.
+// The log itself is not on this list. In the trial it is not withheld at all:
+// nothing links to it, so working the address out of the ordinary web is the
+// puzzle, and it opens whenever the player manages that (store/virtualBrowser.js
+// — the full game's chapter rule there is untouched).
 //
 // None of this edits the underlying data: the archive and its graduation record
 // are still there, unchanged, for the full game. This is a filter that only
