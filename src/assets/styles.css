@@ -8,6 +8,8 @@
   --danger:#ff7c9a;
 }
 *{box-sizing:border-box}
+html,body,#app{min-height:100%}
+body{margin:0;background:var(--bg)}
 button{cursor:pointer}
 .container{max-width:960px;margin:0 auto;padding:16px}
 .card{background:var(--panel);border:1px solid #1c2240;border-radius:14px;padding:14px;box-shadow:0 0 0 1px #0c1224 inset;}
@@ -33,7 +35,7 @@ button{cursor:pointer}
 .chat .from{font-size:12px;color:#5a6fae;font-weight:600;letter-spacing:0.2px;margin-left:4px}
 .chat .bubble{max-width:min(100%,520px);padding:12px 16px;border-radius:18px 18px 18px 8px;line-height:1.6;border:1px solid #dae2ff;background:#fff;color:#27345c;box-shadow:0 14px 32px rgba(44,76,149,0.12);word-break:break-word}
 .chat.me .bubble{border-radius:18px 18px 8px 18px;background:linear-gradient(135deg,#5c8dff 0%,#7da7ff 100%);color:#fff;border:none;box-shadow:0 18px 38px rgba(88,132,255,0.28)}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.container .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 kbd{background:#17203d;border:1px solid #2a315a;border-bottom-width:2px;border-radius:6px;padding:0 6px}
 .small{opacity:.85;font-size:12px}
 nav.top{
@@ -44,7 +46,7 @@ nav.top .inner{display:flex;gap:12px;align-items:center;justify-content:space-be
 .brand{font-weight:700;letter-spacing:.5px}
 code.inline{background:#151a2a;border:1px solid #27305c;padding:2px 6px;border-radius:6px}
 pre.code{background:#11162a;border:1px solid #27305c;padding:10px;border-radius:8px;overflow:auto}
-footer{opacity:.7;margin-top:24px;font-size:12px}
+.container > footer{opacity:.7;margin-top:24px;font-size:12px}
 .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #2a315a;background:#141a2b}
 .badge .dot{width:8px;height:8px;border-radius:999px;background:var(--ok)}
 .grid{display:grid;grid-template-columns:1fr;gap:12px}

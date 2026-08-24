@@ -720,7 +720,7 @@
           79 ：2015/03/02(月) 10:25:00 ID:S2F0bw==
         </div>
         <div class="post-body">
-          URL: <a href="#/news/20150302-17.html">https://news.example.jp/20150302-17.html</a><br>
+          URL: <button type="button" class="link-button" @click="openNews">https://tohto-news.jp/articles/2015/03/20150302-17</button><br>
           『市内の男子高校生が自宅で変死体として発見。<strong>死亡推定時刻は昨夜20時20分ごろ</strong>。家族が帰宅時に既に死亡していた模様』
         </div>
       </div>
@@ -872,7 +872,7 @@
     
     <!-- Toolbar -->
     <div class="toolbar">
-      <button class="btn-retro" @click="backToDM">DMに戻る（物語を進める）</button>
+      <button class="btn-retro" @click="backToDM">{{ props.embedded ? 'Messagesへ戻る（物語を進める）' : 'DMに戻る（物語を進める）' }}</button>
     </div>
   </div>
 </template>
@@ -881,11 +881,28 @@
 import { useRouter } from 'vue-router'
 import { useGameStore } from '../store'
 
+const props = defineProps({
+  embedded: { type: Boolean, default: false }
+})
+
+const emit = defineEmits(['open-url', 'return-messages'])
 const router = useRouter()
 const store = useGameStore()
 
+function openNews(){
+  if(props.embedded){
+    emit('open-url', 'https://tohto-news.jp/articles/2015/03/20150302-17')
+    return
+  }
+  router.push('/news/20150302-17.html')
+}
+
 function backToDM(){
-  store.seenBBS = true
+  store.completeBBS()
+  if(props.embedded){
+    emit('return-messages')
+    return
+  }
   router.push('/')
 }
 </script>
@@ -947,6 +964,20 @@ function backToDM(){
   word-wrap: break-word;
 }
 
+.link-button{
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#0000ee;
+  font:inherit;
+  text-decoration:underline;
+}
+
+.link-button:focus-visible{
+  outline:2px solid #000080;
+  outline-offset:2px;
+}
+
 /* Styling for links */
 .post-body a {
   color: #0000EE;
@@ -977,4 +1008,3 @@ function backToDM(){
   border-style: inset;
 }
 </style>
-

@@ -48,11 +48,10 @@
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useGameStore } from '../store'
+import { GAME_PHASES, useGameStore } from '../store'
 import ChatBubble from '../components/ChatBubble.vue'
 import RetroButton from '../components/RetroButton.vue'
 import dmPrologue from '../data/dm_prologue.json'
-import dmAfter from '../data/dm_after_revival.json'
 import dmAfterBBS from '../data/dm_after_bbs.json'
 import mizunoAvatar from '../photo/solo/水野ヒロキ.png'
 
@@ -61,9 +60,20 @@ const store = useGameStore()
 
 const mediaAssets = import.meta.glob('../photo/**/*', { eager: true, query: '?url', import: 'default' })
 
+const HOME_STEPS = Object.freeze({
+  PROLOGUE: 'prologue',
+  AFTER_BBS: 'after_bbs'
+})
+
+const homeStep = computed(() => {
+  if(store.phase === GAME_PHASES.PROLOGUE_DM){
+    return HOME_STEPS.PROLOGUE
+  }
+  return HOME_STEPS.AFTER_BBS
+})
+
 const dm = computed(() => {
-  if(!store.revivalCleared) return dmPrologue
-  if(!store.seenBBS) return dmAfter
+  if(homeStep.value === HOME_STEPS.PROLOGUE) return dmPrologue
   return dmAfterBBS
 })
 
@@ -149,9 +159,8 @@ const isSendDisabled = computed(() => {
 })
 
 const ctaLabel = computed(()=>{
-  if(!store.revivalCleared) return isLast.value ? '復刻版を起動' : '次へ'
-  if(!store.seenBBS) return isLast.value ? '掲示板へ' : '次へ'
-  return isLast.value ? '初期版を起動' : '次へ'
+  if(homeStep.value === HOME_STEPS.PROLOGUE) return isLast.value ? '掲示板へ' : '次へ'
+  return '次へ'
 })
 
 function scrollToBottom(){
@@ -166,13 +175,9 @@ function next(){
   if(idx.value < script.value.length - 1){
     revealNext()
   } else if(script.value.length){
-    if(!store.revivalCleared){
-      router.push('/revival')
-    } else if(!store.seenBBS){
+    if(homeStep.value === HOME_STEPS.PROLOGUE){
+      store.openBBS()
       router.push('/bbs')
-    } else {
-      store.routeUnlocked = true
-      router.push('/initial')
     }
   }
 }

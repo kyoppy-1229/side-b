@@ -27,21 +27,17 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
       - name: Install
-        run: npm ci || npm i
+        run: npm ci
 
       - name: Build (Vite)
         run: npm run build
 
-      - name: SPA 404 fallback
-        # SPAなら：リロード404対策（index.htmlを404.htmlにコピー）
-        run: |
-          if [ -f dist/index.html ]; then
-            cp dist/index.html dist/404.html
-          fi
-
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 

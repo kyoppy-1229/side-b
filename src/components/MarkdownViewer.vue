@@ -12,7 +12,7 @@ import MarkdownIt from 'markdown-it'
 
 const rendered = ref('読み込み中…')
 onMounted(async () => {
-  const res = await fetch('/docs/complete.md')
+  const res = await fetch(`${import.meta.env.BASE_URL}docs/complete.md`)
   const md = await res.text()
   const mi = new MarkdownIt({ html: true, linkify: true })
   rendered.value = mi.render(md)

@@ -1,3 +1,7 @@
+// Must stay first: it fixes the URL and the storage scope before the router and
+// the stores are evaluated.
+import './boot.js'
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'

@@ -1,0 +1,35 @@
+[
+  { "id": "reunion-001", "beat": "smalltalk", "speaker": "田中シン", "text": "この校舎ももう無くなるんだっけ。" },
+  { "id": "reunion-002", "beat": "smalltalk", "speaker": "山田アヤ", "text": "来年だったかな。廃校になるって。" },
+  { "id": "reunion-003", "beat": "smalltalk", "speaker": "主人公", "text": "文化祭とか、今思うと結構ちゃんとやってたよな。" },
+  { "id": "reunion-004", "beat": "smalltalk", "speaker": "中村ユイ", "text": "先生の方が本気だった気がする。" },
+  { "id": "reunion-005", "beat": "smalltalk", "speaker": "水野ヒロキ", "text": "分かる。前日めちゃくちゃ残らされたし。" },
+  { "id": "reunion-006", "beat": "smalltalk", "speaker": "田中シン", "text": "お前が準備サボってたからだろ。" },
+
+  { "id": "reunion-007", "beat": "side_b", "speaker": "山田アヤ", "text": "そういえばさ、SIDE-Bって覚えてる？" },
+  { "id": "reunion-008", "beat": "side_b", "speaker": "田中シン", "text": "うわ、懐かし。" },
+  { "id": "reunion-009", "beat": "side_b", "speaker": "主人公", "text": "名前は覚えてる。" },
+  { "id": "reunion-010", "beat": "side_b", "speaker": "中村ユイ", "text": "何だっけ、それ。" },
+  { "id": "reunion-011", "beat": "side_b", "speaker": "田中シン", "text": "なんかゲームみたいなやつ。" },
+  { "id": "reunion-012", "beat": "side_b", "speaker": "山田アヤ", "text": "学校の中歩くやつじゃなかった？" },
+  { "id": "reunion-013", "beat": "side_b", "speaker": "水野ヒロキ", "text": "そんな感じだった気がする。" },
+  { "id": "reunion-014", "beat": "side_b", "speaker": "主人公", "text": "俺もほとんど覚えてないな。" },
+
+  { "id": "reunion-015", "beat": "memory_gap", "speaker": "中村ユイ", "text": "私、それやった記憶ないんだけど。" },
+  { "id": "reunion-016", "beat": "memory_gap", "speaker": "田中シン", "text": "え？ やってなかった？" },
+  { "id": "reunion-017", "beat": "memory_gap", "speaker": "中村ユイ", "text": "知らない。" },
+  { "id": "reunion-018", "beat": "memory_gap", "speaker": "田中シン", "text": "絶対一緒に話したって。" },
+  { "id": "reunion-019", "beat": "memory_gap", "speaker": "中村ユイ", "text": "10年以上前だから、別のと混ざってるんじゃない？" },
+  { "id": "reunion-020", "beat": "memory_gap", "speaker": "水野ヒロキ", "text": "まあ俺も内容ほとんど覚えてないしな。" },
+
+  { "id": "reunion-021", "beat": "origin", "speaker": "主人公", "text": "結局あれって誰が作ったんだっけ？" },
+  { "id": "reunion-022", "beat": "origin", "speaker": "田中シン", "text": "知らん。" },
+  { "id": "reunion-023", "beat": "origin", "speaker": "山田アヤ", "text": "私も知らない。" },
+  { "id": "reunion-024", "beat": "origin", "speaker": "中村ユイ", "text": "そもそも、どこで見つけたんだっけ？" },
+  { "id": "reunion-025", "beat": "origin", "speaker": "田中シン", "text": "それも覚えてないわ。" },
+  { "id": "reunion-026", "beat": "origin", "speaker": "田中シン", "text": "まだネットに残ってたりしてな。" },
+  { "id": "reunion-027", "beat": "origin", "speaker": "山田アヤ", "text": "さすがに消えてるでしょ。" },
+  { "id": "reunion-028", "beat": "origin", "speaker": "水野ヒロキ", "text": "検索したら案外出てきたりして。" },
+  { "id": "reunion-029", "beat": "origin", "speaker": "主人公", "text": "見つかったら逆に怖いな。" },
+  { "id": "reunion-030", "beat": "origin", "speaker": "田中シン", "text": "なんでだよ。" }
+]

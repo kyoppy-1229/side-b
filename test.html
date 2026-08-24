@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D教室脱出</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background-color: rgba(255, 255, 255, 0.9); border: 1.5px solid rgba(0, 0, 0, 0.6); border-radius: 50%; transform: translate(-50%, -50%); transition: transform 0.2s, background-color 0.2s, border-color 0.2s; }
+        #crosshair.active { transform: translate(-50%, -50%) scale(1.8); background-color: rgba(255, 200, 80, 0.9); border-color: white; }
+        #status-bar { position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.7); color: white; padding: 15px 20px; border-radius: 8px; border: 1px solid #555; box-shadow: 0 4px 6px rgba(0,0,0,0.3); pointer-events: auto; }
+        #minimap-canvas { position: absolute; top: 20px; right: 20px; border: 2px solid #666; border-radius: 8px; background: rgba(0, 0, 0, 0.6); box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
+        #message-box { position: absolute; bottom: 15%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.85); color: white; padding: 15px 30px; border-radius: 8px; font-size: 22px; font-weight: bold; border: 2px solid #666; box-shadow: 0 0 15px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s; text-align: center; }
+        #blocker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(10, 10, 15, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; pointer-events: auto; z-index: 10; }
+        #instructions { text-align: center; cursor: pointer; padding: 50px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); transition: background 0.3s, transform 0.2s; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #instructions:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.02); }
+        h1 { margin-top: 0; font-size: 42px; text-shadow: 2px 2px 4px #000; }
+        p { font-size: 20px; line-height: 1.8; }
+        .key-bind { color: #5bc0de; font-weight: bold; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px;}
+        #clear-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); display: none; flex-direction: column; justify-content: center; align-items: center; color: #333; z-index: 20; opacity: 0; transition: opacity 2s ease-in-out; text-align: center; }
+        #clear-screen h1 { color: #2c3e50; font-size: 56px; text-shadow: none; margin-bottom: 10px;}
+        #clear-screen p { font-size: 24px; color: #555; line-height: 1.6;}
+        #clear-btn { margin-top: 30px; padding: 12px 30px; font-size: 20px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background 0.2s; }
+        #clear-btn:hover { background: #2980b9; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div id="crosshair"></div>
+        <canvas id="minimap-canvas" width="120" height="240"></canvas>
+        <div id="status-bar">
+            <div style="font-size: 18px; font-weight: bold; border-bottom: 1px solid #666; padding-bottom: 5px;">
+                思い出の品: <span id="item-count" style="color:#ffea00;">0</span> / 2
+            </div>
+            <ul id="inventory-list" style="margin: 8px 0 0 5px; font-size: 15px; padding-left: 0; list-style-type: none; line-height: 1.4;"></ul>
+            <div style="margin-top: 15px; font-size: 13px; color: #ddd;">目的: 廃校になる学校を探索し、<br>思い出の品を全て集めて玄関から出る</div>
+        </div>
+        <div id="message-box"></div>
+    </div>
+
+    <div id="blocker">
+        <div id="instructions">
+            <h1>廃校探索録</h1>
+            <p>クリックして探索を開始<br><br><span class="key-bind">W A S D</span> : 移動<br><span class="key-bind">マウス</span> : 視点移動<br><span class="key-bind">左クリック</span> : ドアの開閉 / アイテムを拾う / 脱出<br><span class="key-bind">ESC</span> : ポーズ</p>
+        </div>
+    </div>
+
+    <div id="clear-screen">
+        <h1>探索完了</h1>
+        <p>全ての思い出の品を見つけ出し、学校を後にした。<br>ここでの日々は、いつまでも心の中で輝き続けるだろう。</p>
+        <button id="clear-btn" onclick="location.reload()">もう一度思い出す</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        const ROOM_WIDTH = 8, ROOM_DEPTH = 10, ROOM_HEIGHT = 3.2, DOOR_WIDTH = 1.2, DOOR_HEIGHT = 2.0;
+        const PLAYER_HEIGHT = 1.5, PLAYER_RADIUS = 0.15, WALK_SPEED = 4.0;
+
+        let camera, scene, renderer, controls, gameCleared = false;
+        let collectedItems = 0; const totalItems = 2; const activeItems = [];
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, prevTime = performance.now();
+        const collisionBoxes = [], interactables = [], doors = [], dynamicCollisionMeshes = [];
+        const raycaster = new THREE.Raycaster(), centerVector = new THREE.Vector2(0, 0);
+        let matFloor, matWall, matCeil, matWood, doorMat;
+        const crosshair = document.getElementById('crosshair'), messageBox = document.getElementById('message-box');
+        let messageTimeout, audioCtx, lastStepTime = 0;
+
+        init(); animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, PLAYER_HEIGHT, -5); camera.lookAt(0, PLAYER_HEIGHT, 0);
+
+            initMaterials(); setupLighting(); buildSchool();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            controls = new PointerLockControls(camera, document.body);
+            const blocker = document.getElementById('blocker'), instructions = document.getElementById('instructions');
+
+            instructions.addEventListener('click', () => {
+                controls.lock();
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                else if (audioCtx.state === 'suspended') audioCtx.resume();
+            });
+            controls.addEventListener('lock', () => { instructions.style.display = 'none'; blocker.style.display = 'none'; });
+            controls.addEventListener('unlock', () => { if (!gameCleared) { blocker.style.display = 'flex'; instructions.style.display = ''; } });
+            scene.add(controls.getObject());
+
+            document.addEventListener('keydown', onKeyDown); document.addEventListener('keyup', onKeyUp);
+            document.addEventListener('mousedown', onMouseClick); window.addEventListener('resize', onWindowResize);
+        }
+
+        function initMaterials() {
+            matFloor = new THREE.MeshStandardMaterial({ color: 0x8b6b4a, roughness: 0.9 });
+            matWall = new THREE.MeshStandardMaterial({ color: 0xf5f5dc, roughness: 1.0 });
+            matCeil = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 1.0 });
+            matWood = new THREE.MeshStandardMaterial({ color: 0x6b4a2b });
+            doorMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.8 });
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return
+
+            const now = audioCtx.currentTime
+            const gain = audioCtx.createGain()
+            gain.connect(audioCtx.destination)
+            gain.gain.setValueAtTime(0.0001, now)
+
+            if (type === 'door') {
+                const osc = audioCtx.createOscillator()
+                osc.type = 'triangle'
+                osc.frequency.setValueAtTime(220, now)
+                osc.frequency.exponentialRampToValueAtTime(130, now + 0.12)
+                gain.gain.exponentialRampToValueAtTime(0.035, now + 0.01)
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18)
+                osc.connect(gain)
+                osc.start(now)
+                osc.stop(now + 0.18)
+            } else if (type === 'pickup') {
+                const osc = audioCtx.createOscillator()
+                osc.type = 'sine'
+                osc.frequency.setValueAtTime(660, now)
+                osc.frequency.exponentialRampToValueAtTime(990, now + 0.16)
+                gain.gain.exponentialRampToValueAtTime(0.05, now + 0.01)
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2)
+                osc.connect(gain)
+                osc.start(now)
+                osc.stop(now + 0.2)
+            } else if (type === 'locked') {
+                const osc = audioCtx.createOscillator()
+                osc.type = 'square'
+                osc.frequency.setValueAtTime(180, now)
+                gain.gain.exponentialRampToValueAtTime(0.03, now + 0.01)
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12)
+                osc.connect(gain)
+                osc.start(now)
+                osc.stop(now + 0.12)
+            } else if (type === 'clear') {
+                const osc1 = audioCtx.createOscillator()
+                const osc2 = audioCtx.createOscillator()
+                osc1.type = 'sine'
+                osc2.type = 'triangle'
+                osc1.frequency.setValueAtTime(523.25, now)
+                osc2.frequency.setValueAtTime(783.99, now)
+                gain.gain.exponentialRampToValueAtTime(0.05, now + 0.02)
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5)
+                osc1.connect(gain)
+                osc2.connect(gain)
+                osc1.start(now)
+                osc2.start(now + 0.02)
+                osc1.stop(now + 0.45)
+                osc2.stop(now + 0.5)
+            } else if (type === 'step') {
+                const osc = audioCtx.createOscillator()
+                osc.type = 'square'
+                osc.frequency.setValueAtTime(90, now)
+                osc.frequency.exponentialRampToValueAtTime(60, now + 0.04)
+                gain.gain.exponentialRampToValueAtTime(0.012, now + 0.005)
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05)
+                osc.connect(gain)
+                osc.start(now)
+                osc.stop(now + 0.05)
+            }
+        }
+
+        function setupLighting() {
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const dirLight = new THREE.DirectionalLight(0xfff0dd, 0.7);
+            dirLight.position.set(20, 15, 10); dirLight.castShadow = true;
+            dirLight.shadow.camera.top = 20; dirLight.shadow.camera.bottom = -20;
+            dirLight.shadow.camera.left = -20; dirLight.shadow.camera.right = 20;
+            dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+        }
+
+        function createMesh(geo, mat, x, y, z, castShadow=true, receiveShadow=true) {
+            const mesh = new THREE.Mesh(geo, mat); mesh.position.set(x, y, z);
+            mesh.castShadow = castShadow; mesh.receiveShadow = receiveShadow; scene.add(mesh); return mesh;
+        }
+
+        function createStaticBox(w, h, d, mat, x, y, z) {
+            const mesh = createMesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
+            mesh.updateMatrixWorld(true); collisionBoxes.push(new THREE.Box3().setFromObject(mesh)); return mesh;
+        }
+
+        function addCollisionBox(w, h, d, x, y, z) {
+            collisionBoxes.push(new THREE.Box3(
+                new THREE.Vector3(x - w / 2, y - h / 2, z - d / 2),
+                new THREE.Vector3(x + w / 2, y + h / 2, z + d / 2)
+            ))
+        }
+
+        function createPanelBox(w, h, d, mat, x, y, z, castShadow=true, receiveShadow=true) {
+            return createMesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z, castShadow, receiveShadow)
+        }
+
+        function buildDeskSet(x, z, variant) {
+            const deskTopMat = new THREE.MeshStandardMaterial({ color: variant === 1 ? 0x8a623d : 0x7a5536, roughness: 0.75 })
+            const deskFrameMat = new THREE.MeshStandardMaterial({ color: 0x59636e, metalness: 0.45, roughness: 0.5 })
+            const seatMat = new THREE.MeshStandardMaterial({ color: variant === 1 ? 0x80573a : 0x6c472f, roughness: 0.82 })
+
+            createPanelBox(0.68, 0.05, 0.48, deskTopMat, x, 0.72, z)
+            createPanelBox(0.62, 0.06, 0.08, deskTopMat, x, 0.63, z - 0.14)
+            createPanelBox(0.54, 0.02, 0.3, deskFrameMat, x, 0.69, z)
+
+            ;[-0.27, 0.27].forEach(offsetX => {
+                ;[-0.18, 0.18].forEach(offsetZ => {
+                    createPanelBox(0.04, 0.66, 0.04, deskFrameMat, x + offsetX, 0.37, z + offsetZ)
+                })
+            })
+
+            createPanelBox(0.08, 0.68, 0.03, deskFrameMat, x - 0.24, 0.36, z + 0.28)
+            createPanelBox(0.08, 0.68, 0.03, deskFrameMat, x + 0.24, 0.36, z + 0.28)
+            createPanelBox(0.42, 0.04, 0.04, deskFrameMat, x, 0.42, z - 0.18)
+            createPanelBox(0.42, 0.04, 0.04, deskFrameMat, x, 0.42, z + 0.18)
+
+            const chairX = x
+            const chairZ = z + 0.48
+            createPanelBox(0.42, 0.04, 0.4, seatMat, chairX, 0.42, chairZ)
+            createPanelBox(0.4, 0.36, 0.04, seatMat, chairX, 0.68, chairZ + 0.18)
+            createPanelBox(0.04, 0.42, 0.04, deskFrameMat, chairX - 0.17, 0.21, chairZ - 0.15)
+            createPanelBox(0.04, 0.42, 0.04, deskFrameMat, chairX + 0.17, 0.21, chairZ - 0.15)
+            createPanelBox(0.04, 0.8, 0.04, deskFrameMat, chairX - 0.17, 0.4, chairZ + 0.17)
+            createPanelBox(0.04, 0.8, 0.04, deskFrameMat, chairX + 0.17, 0.4, chairZ + 0.17)
+            createPanelBox(0.34, 0.03, 0.03, deskFrameMat, chairX, 0.23, chairZ - 0.15)
+
+            addCollisionBox(0.72, 0.78, 0.95, x, 0.39, z + 0.16)
+        }
+
+        function createWallDisplay(width, height, texture, x, y, z, rotY, frameColor, tilt=0) {
+            const frameMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.78 })
+            const artMat = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.92 })
+            const frame = new THREE.Group()
+            frame.position.set(x, y, z)
+            frame.rotation.y = rotY
+            frame.rotation.z = tilt
+            scene.add(frame)
+
+            const backing = new THREE.Mesh(new THREE.BoxGeometry(width + 0.08, height + 0.08, 0.04), frameMat)
+            backing.castShadow = true
+            backing.receiveShadow = true
+            frame.add(backing)
+
+            const art = new THREE.Mesh(new THREE.PlaneGeometry(width, height), artMat)
+            art.position.z = 0.03
+            frame.add(art)
+
+            return frame
+        }
+
+        function buildFireCabinet(x, z) {
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xc93c33, roughness: 0.5, metalness: 0.15 })
+            const trimMat = new THREE.MeshStandardMaterial({ color: 0xf6f0e7, roughness: 0.72 })
+            createPanelBox(0.18, 1.0, 0.72, bodyMat, x, 1.1, z)
+            createPanelBox(0.03, 0.84, 0.56, trimMat, x - 0.08, 1.1, z)
+            addCollisionBox(0.18, 1.0, 0.72, x, 1.1, z)
+        }
+
+        function buildSinkStation(x, z) {
+            const basinMat = new THREE.MeshStandardMaterial({ color: 0xd8dde3, metalness: 0.3, roughness: 0.38 })
+            const pipeMat = new THREE.MeshStandardMaterial({ color: 0x7a8691, metalness: 0.7, roughness: 0.3 })
+            const tileMat = new THREE.MeshStandardMaterial({ color: 0xe8edf2, roughness: 0.95 })
+            createPanelBox(0.6, 0.95, 1.8, tileMat, x, 1.15, z)
+            createPanelBox(0.5, 0.16, 1.6, basinMat, x - 0.08, 0.82, z)
+            createPanelBox(0.06, 0.72, 0.06, pipeMat, x - 0.12, 0.36, z - 0.5)
+            createPanelBox(0.06, 0.72, 0.06, pipeMat, x - 0.12, 0.36, z + 0.5)
+            createPanelBox(0.04, 0.18, 0.08, pipeMat, x - 0.2, 0.97, z - 0.5)
+            createPanelBox(0.04, 0.18, 0.08, pipeMat, x - 0.2, 0.97, z)
+            createPanelBox(0.04, 0.18, 0.08, pipeMat, x - 0.2, 0.97, z + 0.5)
+            addCollisionBox(0.6, 0.95, 1.8, x, 1.15, z)
+        }
+
+        function buildWaterCooler(x, z) {
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf3f6f8, roughness: 0.68 })
+            const accentMat = new THREE.MeshStandardMaterial({ color: 0x7db7d8, roughness: 0.35, metalness: 0.1 })
+            const bottleMat = new THREE.MeshStandardMaterial({ color: 0x97d8ff, transparent: true, opacity: 0.55, roughness: 0.1 })
+            createPanelBox(0.42, 1.1, 0.5, bodyMat, x, 0.55, z)
+            createPanelBox(0.18, 0.08, 0.16, accentMat, x + 0.08, 0.72, z - 0.08)
+            createPanelBox(0.18, 0.08, 0.16, accentMat, x + 0.08, 0.72, z + 0.08)
+            const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.1, 0.42, 24), bottleMat)
+            bottle.position.set(x, 1.32, z)
+            bottle.castShadow = true
+            bottle.receiveShadow = true
+            scene.add(bottle)
+            addCollisionBox(0.42, 1.52, 0.5, x, 0.76, z)
+        }
+
+        function buildSchool() {
+            buildCorridor();
+            buildClassroom(6, 5, '1年1組', '4月1日(水) 日直: 佐藤', '二次関数のグラフ', 1);
+            createItem(9.5, 0.65, 8.5, "古いクラス写真", 0xdddddd, false);
+            buildClassroom(6, 18, '1年2組', '4月15日(木) 日直: 田中', '英単語テスト 10P~15P\n・Apple\n・Banana\n・Cherry', 2);
+            createItem(6, 0.95, 14.2, "ボロボロの寄せ書き", 0xffeebb, true);
+        }
+
+        function buildCorridor() {
+            createMesh(new THREE.BoxGeometry(4, 0.1, 36), matFloor, 0, -0.05, 8);
+            createMesh(new THREE.BoxGeometry(4, 0.1, 36), matCeil, 0, ROOM_HEIGHT + 0.05, 8);
+            
+            createStaticBox(0.2, 0.9, 36, matWall, -2, 0.45, 8);
+            createStaticBox(0.2, 0.5, 36, matWall, -2, 2.95, 8);
+            const frostedGlassMat = new THREE.MeshStandardMaterial({color: 0xeeeeff, roughness: 0.5, transparent: true, opacity: 0.9, emissive: 0xaaaaaa, emissiveIntensity: 0.5});
+            createMesh(new THREE.BoxGeometry(0.05, 1.8, 36), frostedGlassMat, -2, 1.8, 8, false, false);
+            for(let z=-10; z<=26; z+=4) createStaticBox(0.3, ROOM_HEIGHT, 0.4, matWall, -2, ROOM_HEIGHT/2, z);
+            
+            createStaticBox(0.2, ROOM_HEIGHT, 10, matWall, 2, ROOM_HEIGHT/2, -5);
+            createStaticBox(0.2, ROOM_HEIGHT, 3, matWall, 2, ROOM_HEIGHT/2, 11.5);
+            createStaticBox(0.2, ROOM_HEIGHT, 3, matWall, 2, ROOM_HEIGHT/2, 24.5);
+            createStaticBox(4.2, ROOM_HEIGHT, 0.2, matWall, 0, ROOM_HEIGHT/2, 26.1); 
+
+            createStaticBox(0.7, ROOM_HEIGHT, 0.2, matWall, -1.75, ROOM_HEIGHT/2, -10.1);
+            createStaticBox(0.7, ROOM_HEIGHT, 0.2, matWall, 1.75, ROOM_HEIGHT/2, -10.1);
+            createStaticBox(4.2, ROOM_HEIGHT - DOOR_HEIGHT, 0.2, matWall, 0, DOOR_HEIGHT + (ROOM_HEIGHT-DOOR_HEIGHT)/2, -10.1);
+
+            createDoor(0, 0, -10.04, 0, '玄関引き戸', 2.6, true)
+
+            const exitHitBox = createMesh(new THREE.BoxGeometry(2.4, 3, 0.5), new THREE.MeshBasicMaterial({visible:false}), 0, 1.5, -9.25);
+            exitHitBox.userData = { type: 'exit', name: '外への出口' };
+            interactables.push(exitHitBox);
+
+            // 脱出口を強調するための光
+            const exitLight = new THREE.PointLight(0xffffff, 1, 6);
+            exitLight.position.set(0, 2, -9);
+            scene.add(exitLight);
+            
+            const cMat1 = createCalligraphyTexture('希望', 1)
+            const cMat2 = createCalligraphyTexture('友情', 2)
+            const pMat1 = createPaintingTexture(1)
+            const pMat2 = createPaintingTexture(2)
+
+            createWallDisplay(0.58, 0.92, cMat1, 1.83, 1.48, -4.1, -Math.PI / 2, 0x735137, -0.03)
+            createWallDisplay(0.58, 0.92, cMat2, 1.83, 1.47, -1.95, -Math.PI / 2, 0x5f4331, 0.02)
+            createWallDisplay(1.15, 0.88, pMat1, 1.83, 1.46, 12.05, -Math.PI / 2, 0x8b613d, -0.015)
+            createWallDisplay(1.15, 0.88, pMat2, 1.83, 1.5, 23.9, -Math.PI / 2, 0x7a5132, 0.018)
+
+            buildFireCabinet(1.72, 4.8)
+            buildSinkStation(1.62, 16.2)
+            buildWaterCooler(1.6, 20.8)
+
+            const lightGeo = new THREE.BoxGeometry(0.8, 0.05, 0.2);
+            const lightMat = new THREE.MeshStandardMaterial({color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8});
+            for(let z = -6; z <= 24; z += 6) {
+                createMesh(lightGeo, lightMat, 0, ROOM_HEIGHT - 0.025, z, false, false);
+                const pl = new THREE.PointLight(0xfff0dd, 0.2, 8); pl.position.set(0, ROOM_HEIGHT - 0.3, z); scene.add(pl);
+            }
+        }
+
+        function buildClassroom(cx, cz, roomName, bbText1, bbText2, roomType) {
+            createMesh(new THREE.BoxGeometry(ROOM_WIDTH, 0.1, ROOM_DEPTH), matFloor, cx, -0.05, cz);
+            createMesh(new THREE.BoxGeometry(ROOM_WIDTH, 0.1, ROOM_DEPTH), matCeil, cx, ROOM_HEIGHT+0.05, cz);
+
+            createStaticBox(ROOM_WIDTH, ROOM_HEIGHT, 0.2, matWall, cx, ROOM_HEIGHT/2, cz - ROOM_DEPTH/2);
+            createStaticBox(ROOM_WIDTH, ROOM_HEIGHT, 0.2, matWall, cx, ROOM_HEIGHT/2, cz + ROOM_DEPTH/2);
+
+            createStaticBox(0.2, 0.9, ROOM_DEPTH, matWall, cx + ROOM_WIDTH/2, 0.45, cz);
+            createStaticBox(0.2, 0.5, ROOM_DEPTH, matWall, cx + ROOM_WIDTH/2, 2.95, cz);
+            const frostedGlassMat = new THREE.MeshStandardMaterial({color: 0xeeeeff, roughness: 0.5, transparent: true, opacity: 0.9, emissive: 0xaaaaaa, emissiveIntensity: 0.5});
+            createMesh(new THREE.BoxGeometry(0.05, 1.8, ROOM_DEPTH), frostedGlassMat, cx + ROOM_WIDTH/2, 1.8, cz, false, false);
+            for(let z=cz-4.5; z<=cz+4.5; z+=3) createStaticBox(0.3, ROOM_HEIGHT, 0.4, matWall, cx + ROOM_WIDTH/2, ROOM_HEIGHT/2, z);
+
+            createStaticBox(0.2, ROOM_HEIGHT, 1.0, matWall, 2, ROOM_HEIGHT/2, cz - 4.5);
+            createDoor(2, 0, cz - 4.0, -Math.PI/2, `${roomName} 前扉`);
+            createStaticBox(0.2, ROOM_HEIGHT, 5.8, matWall, 2, ROOM_HEIGHT/2, cz + 0.1);
+            createDoor(2, 0, cz + 3.0, -Math.PI/2, `${roomName} 後扉`);
+            createStaticBox(0.2, ROOM_HEIGHT, 0.8, matWall, 2, ROOM_HEIGHT/2, cz + 4.6);
+
+            createStaticBox(0.2, ROOM_HEIGHT - DOOR_HEIGHT, 1.2, matWall, 2, DOOR_HEIGHT + (ROOM_HEIGHT-DOOR_HEIGHT)/2, cz - 3.4);
+            createStaticBox(0.2, ROOM_HEIGHT - DOOR_HEIGHT, 1.2, matWall, 2, DOOR_HEIGHT + (ROOM_HEIGHT-DOOR_HEIGHT)/2, cz + 3.6);
+
+            // 教室ごとに異なる黒板テクスチャを生成
+            const bbTex = createBlackboardTexture(roomName, bbText1, bbText2, roomType);
+            const bbMat = new THREE.MeshStandardMaterial({ map: bbTex, roughness: 0.9 });
+            createMesh(new THREE.BoxGeometry(5.0, 1.5, 0.05), bbMat, cx, 1.6, cz - ROOM_DEPTH/2 + 0.11);
+            createStaticBox(5.0, 0.05, 0.15, matWood, cx, 0.85, cz - ROOM_DEPTH/2 + 0.15);
+
+            // 教室ごとに異なる掲示板テクスチャを生成
+            const noticeTex = createNoticeBoardTexture(roomType);
+            createMesh(new THREE.BoxGeometry(2.5, 1.2, 0.05), new THREE.MeshStandardMaterial({map: noticeTex}), cx - 2.0, 1.6, cz + ROOM_DEPTH/2 - 0.11);
+            
+            const lockerMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.3, roughness: 0.6 });
+            for(let i=0; i<3; i++) createStaticBox(0.9, 1.8, 0.4, lockerMat, cx + 1.2 + i*1.0, 0.9, cz + ROOM_DEPTH/2 - 0.25);
+
+            const teacherDeskMat = new THREE.MeshStandardMaterial({ color: 0x7a5533, roughness: 0.75 });
+            const teacherDeskFrameMat = new THREE.MeshStandardMaterial({ color: 0x56606b, metalness: 0.35, roughness: 0.6 });
+            createPanelBox(2.2, 0.08, 0.75, teacherDeskMat, cx, 0.78, cz - ROOM_DEPTH/2 + 0.7);
+            createPanelBox(0.08, 0.7, 0.68, teacherDeskMat, cx - 0.95, 0.39, cz - ROOM_DEPTH/2 + 0.7);
+            createPanelBox(0.08, 0.7, 0.68, teacherDeskMat, cx + 0.95, 0.39, cz - ROOM_DEPTH/2 + 0.7);
+            createPanelBox(1.9, 0.04, 0.04, teacherDeskFrameMat, cx, 0.44, cz - ROOM_DEPTH/2 + 0.42);
+            addCollisionBox(2.2, 0.82, 0.78, cx, 0.41, cz - ROOM_DEPTH/2 + 0.7);
+
+            // 机と椅子の配置
+            for(let r=0; r<4; r++) {
+                for(let c=0; c<4; c++) {
+                    const dx = cx - 2.0 + c*1.3;
+                    const dz = cz - 1.5 + r*1.5;
+                    buildDeskSet(dx, dz, roomType);
+                }
+            }
+        }
+
+        // ==========================================
+        // 以降、欠落していたロジックの実装
+        // ==========================================
+
+        function createDoor(x, y, z, rotY, name, width=DOOR_WIDTH, isExit=false) {
+            const pivot = new THREE.Group();
+            pivot.position.set(x, y, z);
+            pivot.rotation.y = rotY;
+            pivot.userData = { isOpen: false, slide: 0, width: width, name: name, isExit: isExit };
+            scene.add(pivot);
+
+            const trackMat = new THREE.MeshStandardMaterial({ color: 0x78818a, metalness: 0.65, roughness: 0.32 })
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x785335, roughness: 0.78 })
+            const trimMat = new THREE.MeshStandardMaterial({ color: 0x4b2d19, roughness: 0.78 })
+            const glassMat = new THREE.MeshStandardMaterial({
+                color: 0xdfe8ef,
+                roughness: 0.12,
+                metalness: 0.05,
+                transparent: true,
+                opacity: 0.3
+            })
+            const knobMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8 })
+
+            createPanelBox(width + 0.12, 0.08, 0.14, trackMat, x, DOOR_HEIGHT + 0.04, z)
+            createPanelBox(width + 0.12, 0.05, 0.14, trackMat, x, 0.03, z)
+            createPanelBox(0.08, DOOR_HEIGHT + 0.16, 0.14, frameMat, x - width / 2 - 0.04, (DOOR_HEIGHT + 0.16) / 2, z)
+            createPanelBox(0.08, DOOR_HEIGHT + 0.16, 0.14, frameMat, x + width / 2 + 0.04, (DOOR_HEIGHT + 0.16) / 2, z)
+
+            const leftLeaf = new THREE.Group()
+            const rightLeaf = new THREE.Group()
+            leftLeaf.position.set(-width / 4, 0, 0.02)
+            rightLeaf.position.set(width / 4, 0, -0.02)
+            pivot.add(leftLeaf)
+            pivot.add(rightLeaf)
+
+            const panelWidth = width / 2 - 0.04
+            const leftBody = new THREE.Mesh(new THREE.BoxGeometry(panelWidth, DOOR_HEIGHT, 0.06), doorMat)
+            leftBody.position.set(0, DOOR_HEIGHT / 2, 0)
+            leftBody.castShadow = true
+            leftBody.receiveShadow = true
+            leftBody.userData = { type: isExit ? 'exitDoor' : 'door', doorRef: pivot }
+            leftLeaf.add(leftBody)
+            interactables.push(leftBody)
+            dynamicCollisionMeshes.push(leftBody)
+
+            const rightBody = new THREE.Mesh(new THREE.BoxGeometry(panelWidth, DOOR_HEIGHT, 0.06), doorMat)
+            rightBody.position.set(0, DOOR_HEIGHT / 2, 0)
+            rightBody.castShadow = true
+            rightBody.receiveShadow = true
+            rightBody.userData = { type: isExit ? 'exitDoor' : 'door', doorRef: pivot }
+            rightLeaf.add(rightBody)
+            interactables.push(rightBody)
+            dynamicCollisionMeshes.push(rightBody)
+
+            const leftUpper = new THREE.Mesh(new THREE.BoxGeometry(panelWidth - 0.18, 0.58, 0.02), trimMat)
+            leftUpper.position.set(0, 1.42, 0.04)
+            leftLeaf.add(leftUpper)
+            const leftGlass = new THREE.Mesh(new THREE.BoxGeometry(panelWidth - 0.24, 0.28, 0.015), glassMat)
+            leftGlass.position.set(0, 1.44, 0.05)
+            leftLeaf.add(leftGlass)
+
+            const rightUpper = new THREE.Mesh(new THREE.BoxGeometry(panelWidth - 0.18, 0.58, 0.02), trimMat)
+            rightUpper.position.set(0, 1.42, 0.04)
+            rightLeaf.add(rightUpper)
+            const rightGlass = new THREE.Mesh(new THREE.BoxGeometry(panelWidth - 0.24, 0.28, 0.015), glassMat)
+            rightGlass.position.set(0, 1.44, 0.05)
+            rightLeaf.add(rightGlass)
+
+            const leftLower = new THREE.Mesh(new THREE.BoxGeometry(panelWidth - 0.12, 0.76, 0.02), trimMat)
+            leftLower.position.set(0, 0.58, 0.04)
+            leftLeaf.add(leftLower)
+            const rightLower = new THREE.Mesh(new THREE.BoxGeometry(panelWidth - 0.12, 0.76, 0.02), trimMat)
+            rightLower.position.set(0, 0.58, 0.04)
+            rightLeaf.add(rightLower)
+
+            const leftHandle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.03), knobMat)
+            leftHandle.position.set(panelWidth / 2 - 0.08, DOOR_HEIGHT / 2, 0.06)
+            leftLeaf.add(leftHandle)
+            const rightHandle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.03), knobMat)
+            rightHandle.position.set(-panelWidth / 2 + 0.08, DOOR_HEIGHT / 2, 0.06)
+            rightLeaf.add(rightHandle)
+
+            doors.push(pivot);
+        }
+
+        function createItem(x, y, z, name, color, isFloating) {
+            const geo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+            const mat = new THREE.MeshStandardMaterial({color: color, emissive: color, emissiveIntensity: 0.4});
+            const mesh = createMesh(geo, mat, x, y, z);
+            mesh.userData = { type: 'item', name: name, floating: isFloating, baseY: y };
+            interactables.push(mesh);
+            activeItems.push(mesh);
+        }
+
+        // --- 動的テクスチャの生成関数 ---
+
+        function createBlackboardTexture(roomName, t1, t2, type) {
+            const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1e3f20'; ctx.fillRect(0,0,1024,512); // 黒板の緑
+            
+            // 黒板消しの跡
+            ctx.fillStyle = 'rgba(255,255,255,0.03)';
+            for(let i=0; i<3000; i++) ctx.fillRect(Math.random()*1024, Math.random()*512, Math.random()*40+10, Math.random()*10+2);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; 
+            ctx.font = 'bold 36px sans-serif';
+            ctx.fillText(roomName, 40, 60);
+
+            // タッチの違いを表現
+            if (type === 1) {
+                // 几帳面な字（明朝体）
+                ctx.font = '32px serif'; 
+                ctx.fillText(t1, 40, 150);
+                
+                // 先生の走り書き（黄色チョーク）
+                ctx.fillStyle = 'rgba(255, 255, 150, 0.9)';
+                ctx.font = 'italic 46px "Comic Sans MS", cursive, sans-serif';
+                ctx.fillText(t2, 250, 250);
+                
+                // グラフ（赤チョーク）
+                ctx.strokeStyle = 'rgba(255, 100, 100, 0.8)'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(600, 100); ctx.lineTo(600, 400); ctx.moveTo(500, 300); ctx.lineTo(800, 300); ctx.stroke();
+                ctx.strokeStyle = 'white';
+                ctx.beginPath(); ctx.moveTo(550, 150); ctx.quadraticCurveTo(600, 450, 750, 150); ctx.stroke();
+            } else {
+                // 生徒の落書き風（丸文字）
+                ctx.font = 'bold 32px "Yu Gothic", sans-serif';
+                ctx.fillText(t1, 40, 150);
+                
+                // 英単語（少し乱雑に）
+                const lines = t2.split('\n');
+                ctx.fillStyle = 'rgba(255, 200, 200, 0.9)';
+                ctx.font = '40px sans-serif';
+                lines.forEach((line, i) => ctx.fillText(line, 250, 200 + i*60));
+
+                // 相合い傘の落書き
+                ctx.strokeStyle = 'rgba(255, 150, 200, 0.8)'; ctx.lineWidth = 5;
+                ctx.beginPath(); ctx.moveTo(800, 300); ctx.lineTo(950, 300); ctx.lineTo(875, 200); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(875, 300); ctx.lineTo(875, 400); ctx.arc(860, 400, 15, 0, Math.PI); ctx.stroke();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createNoticeBoardTexture(type) {
+            const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#d2b48c'; ctx.fillRect(0,0,512,256); // コルクボード色
+            
+            // 貼られたプリント類
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(20, 20, 100, 150);
+            ctx.fillRect(150, 40, 120, 100);
+            if (type === 2) ctx.fillRect(300, 60, 150, 120);
+
+            // 画鋲
+            ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.arc(70, 30, 5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#0000ff'; ctx.beginPath(); ctx.arc(210, 50, 5, 0, Math.PI*2); ctx.fill();
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createCalligraphyTexture(text, type) {
+            const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#efe7d6'; ctx.fillRect(0,0,256,512);
+            ctx.fillStyle = 'rgba(120, 90, 60, 0.08)'
+            for(let i = 0; i < 120; i++) ctx.fillRect(Math.random() * 256, Math.random() * 512, 1, Math.random() * 18 + 8)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
+            ctx.fillRect(14, 18, 228, 476)
+            ctx.fillStyle = 'black'
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+            if (type === 1) {
+                ctx.font = 'bold 122px "Yu Mincho", serif'
+                ctx.fillText(text[0], 126, 152)
+                ctx.fillText(text[1], 128, 338)
+                ctx.strokeStyle = 'rgba(20, 20, 20, 0.2)'
+                ctx.lineWidth = 2
+                ctx.beginPath(); ctx.moveTo(52, 442); ctx.lineTo(204, 442); ctx.stroke()
+            } else {
+                ctx.save()
+                ctx.translate(128, 160)
+                ctx.rotate(-0.06)
+                ctx.font = 'italic bold 128px "Yu Mincho", serif'
+                ctx.fillText(text[0], 0, 0)
+                ctx.restore()
+                ctx.save()
+                ctx.translate(128, 350)
+                ctx.rotate(0.04)
+                ctx.font = 'italic bold 138px "Yu Mincho", serif'
+                ctx.fillText(text[1], 0, 0)
+                ctx.restore()
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.16)'
+                ctx.lineWidth = 4
+                ctx.beginPath(); ctx.moveTo(70, 438); ctx.quadraticCurveTo(128, 455, 188, 430); ctx.stroke()
+            }
+
+            ctx.fillStyle = type === 1 ? 'rgba(180, 40, 40, 0.72)' : 'rgba(190, 20, 20, 0.62)'
+            ctx.beginPath(); ctx.arc(210, 460, 18, 0, Math.PI * 2); ctx.fill()
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createPaintingTexture(type) {
+            const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            if (type === 1) {
+                const sky = ctx.createLinearGradient(0, 0, 0, 512)
+                sky.addColorStop(0, '#b6d9f2')
+                sky.addColorStop(0.58, '#dbeed7')
+                sky.addColorStop(1, '#a9c28d')
+                ctx.fillStyle = sky
+                ctx.fillRect(0, 0, 512, 512)
+                ctx.fillStyle = 'rgba(255,255,255,0.55)'
+                ctx.beginPath(); ctx.arc(418, 92, 48, 0, Math.PI * 2); ctx.fill()
+                ctx.fillStyle = 'rgba(114, 155, 94, 0.95)'
+                ctx.beginPath(); ctx.moveTo(0, 362); ctx.quadraticCurveTo(100, 262, 198, 338); ctx.quadraticCurveTo(308, 250, 512, 348); ctx.lineTo(512, 512); ctx.lineTo(0, 512); ctx.closePath(); ctx.fill()
+                ctx.fillStyle = 'rgba(82, 115, 170, 0.86)'
+                ctx.beginPath(); ctx.moveTo(40, 344); ctx.quadraticCurveTo(170, 376, 314, 334); ctx.quadraticCurveTo(400, 308, 470, 330); ctx.lineTo(474, 378); ctx.quadraticCurveTo(328, 348, 184, 388); ctx.quadraticCurveTo(92, 402, 38, 382); ctx.closePath(); ctx.fill()
+                ctx.strokeStyle = 'rgba(255,255,255,0.38)'
+                ctx.lineWidth = 8
+                ctx.beginPath(); ctx.moveTo(98, 134); ctx.quadraticCurveTo(164, 86, 246, 138); ctx.stroke()
+                ctx.beginPath(); ctx.moveTo(178, 116); ctx.quadraticCurveTo(244, 78, 330, 126); ctx.stroke()
+            } else {
+                ctx.fillStyle = '#fbf4db'; ctx.fillRect(0,0,512,512)
+                ctx.strokeStyle = '#cc4b3e'; ctx.lineWidth = 12
+                ctx.strokeRect(20, 20, 472, 472)
+                ctx.fillStyle = '#79b85e'
+                ctx.fillRect(38, 302, 436, 148)
+                ctx.fillStyle = '#87ceeb'
+                ctx.fillRect(38, 54, 436, 248)
+                ctx.fillStyle = '#f6d14e'
+                ctx.beginPath(); ctx.arc(410, 112, 38, 0, Math.PI * 2); ctx.fill()
+                ctx.strokeStyle = '#305f2e'; ctx.lineWidth = 18
+                ctx.beginPath(); ctx.moveTo(126, 392); ctx.lineTo(126, 242); ctx.stroke()
+                ctx.beginPath(); ctx.moveTo(126, 262); ctx.lineTo(92, 206); ctx.stroke()
+                ctx.beginPath(); ctx.moveTo(126, 260); ctx.lineTo(160, 198); ctx.stroke()
+                ctx.strokeStyle = '#213a73'; ctx.lineWidth = 14
+                ctx.beginPath(); ctx.moveTo(288, 398); ctx.lineTo(316, 320); ctx.lineTo(350, 398); ctx.stroke()
+                ctx.beginPath(); ctx.arc(317, 286, 32, 0, Math.PI * 2); ctx.stroke()
+                ctx.fillStyle = '#2c3e50'
+                ctx.font = 'bold 46px sans-serif'
+                ctx.fillText('運動会ポスター', 84, 92)
+                ctx.font = 'bold 36px sans-serif'
+                ctx.fillText('がんばろう！', 142, 470)
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // --- イベントとゲームループ ---
+
+        function onKeyDown(event) {
+            switch(event.code) {
+                case 'KeyW': case 'ArrowUp': moveForward = true; break;
+                case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
+                case 'KeyS': case 'ArrowDown': moveBackward = true; break;
+                case 'KeyD': case 'ArrowRight': moveRight = true; break;
+            }
+        }
+        function onKeyUp(event) {
+            switch(event.code) {
+                case 'KeyW': case 'ArrowUp': moveForward = false; break;
+                case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
+                case 'KeyS': case 'ArrowDown': moveBackward = false; break;
+                case 'KeyD': case 'ArrowRight': moveRight = false; break;
+            }
+        }
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function showMessage(text, color='white') {
+            messageBox.innerText = text;
+            messageBox.style.color = color;
+            messageBox.style.opacity = 1;
+            clearTimeout(messageTimeout);
+            messageTimeout = setTimeout(() => { messageBox.style.opacity = 0; }, 3000);
+        }
+
+        function onMouseClick() {
+            if(!controls.isLocked || gameCleared) return;
+            raycaster.setFromCamera(centerVector, camera);
+            const intersects = raycaster.intersectObjects(interactables, false);
+            
+            if(intersects.length > 0 && intersects[0].distance < 3.0) {
+                const obj = intersects[0].object;
+                
+                if(obj.userData.type === 'door' || obj.userData.type === 'exitDoor') {
+                    const door = obj.userData.doorRef
+                    if (door.userData.isExit && collectedItems < totalItems) {
+                        showMessage(`外へ出るには、思い出の品が足りない... (${collectedItems}/${totalItems})`, '#ffaaaa')
+                        playSound('locked')
+                    } else {
+                        door.userData.isOpen = !door.userData.isOpen
+                        showMessage(door.userData.isOpen ? `${door.userData.name}を開けた` : `${door.userData.name}を閉めた`)
+                        playSound('door')
+                    }
+                } 
+                else if(obj.userData.type === 'item') {
+                    collectedItems++;
+                    document.getElementById('item-count').innerText = collectedItems;
+                    const li = document.createElement('li'); 
+                    li.innerText = `・${obj.userData.name}`;
+                    document.getElementById('inventory-list').appendChild(li);
+                    
+                    showMessage(`${obj.userData.name} を手に入れた！`, '#ffea00');
+                    playSound('pickup')
+                    scene.remove(obj);
+                    interactables.splice(interactables.indexOf(obj), 1);
+                    activeItems.splice(activeItems.indexOf(obj), 1);
+                } 
+                else if(obj.userData.type === 'exit') {
+                    const exitDoor = doors.find(door => door.userData.isExit)
+                    if(collectedItems >= totalItems && exitDoor?.userData.isOpen) {
+                        gameCleared = true;
+                        playSound('clear')
+                        controls.unlock();
+                        document.getElementById('clear-screen').style.display = 'flex';
+                        setTimeout(() => document.getElementById('clear-screen').style.opacity = 1, 100);
+                    } else if (collectedItems >= totalItems) {
+                        showMessage('玄関の引き戸を開けて外へ出よう', '#d8f3ff')
+                        playSound('locked')
+                    } else {
+                        showMessage(`外へ出るには、思い出の品が足りない... (${collectedItems}/${totalItems})`, '#ffaaaa');
+                        playSound('locked')
+                    }
+                }
+            }
+        }
+
+        function checkCollision(pos) {
+            const playerBox = new THREE.Box3(
+                new THREE.Vector3(pos.x - PLAYER_RADIUS, 0, pos.z - PLAYER_RADIUS),
+                new THREE.Vector3(pos.x + PLAYER_RADIUS, PLAYER_HEIGHT, pos.z + PLAYER_RADIUS)
+            );
+            for(let box of collisionBoxes) {
+                if(playerBox.intersectsBox(box)) return true;
+            }
+            for(let mesh of dynamicCollisionMeshes) {
+                mesh.updateMatrixWorld(true)
+                if(playerBox.intersectsBox(new THREE.Box3().setFromObject(mesh))) return true
+            }
+            return false;
+        }
+
+        function updateMinimap() {
+            const canvas = document.getElementById('minimap-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 120, 240);
+            
+            // 簡易的なマップ描画
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(50, 20, 20, 200); // 廊下
+            ctx.fillRect(70, 50, 40, 50); // 教室1
+            ctx.fillRect(70, 140, 40, 50); // 教室2
+            
+            // プレイヤー位置（座標のスケール変換）
+            const px = (camera.position.x / 10) * 40 + 60;
+            const pz = ((camera.position.z + 10) / 36) * 200 + 20;
+            
+            ctx.fillStyle = '#ffea00';
+            ctx.beginPath(); ctx.arc(px, pz, 4, 0, Math.PI*2); ctx.fill();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+            const delta = Math.min((time - prevTime) / 1000, 0.1); // デルタタイムの上限を設定
+
+            if (controls.isLocked && !gameCleared) {
+                const speed = WALK_SPEED * delta;
+                const dir = new THREE.Vector3();
+                camera.getWorldDirection(dir);
+                dir.y = 0; dir.normalize();
+                const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0)).normalize();
+
+                const oldPos = controls.getObject().position.clone();
+                const moveVec = new THREE.Vector3(0,0,0);
+
+                if (moveForward) moveVec.add(dir);
+                if (moveBackward) moveVec.sub(dir);
+                if (moveLeft) moveVec.sub(right);
+                if (moveRight) moveVec.add(right);
+
+                if(moveVec.lengthSq() > 0) {
+                    moveVec.normalize().multiplyScalar(speed);
+                    controls.getObject().position.add(moveVec);
+                    
+                    // 壁との衝突判定
+                    if(checkCollision(controls.getObject().position)) {
+                        controls.getObject().position.copy(oldPos);
+                    } else if (time - lastStepTime > 420) {
+                        playSound('step')
+                        lastStepTime = time
+                    }
+                }
+
+                // レティクル（クロスヘア）の反応処理
+                raycaster.setFromCamera(centerVector, camera);
+                const intersects = raycaster.intersectObjects(interactables, false);
+                if(intersects.length > 0 && intersects[0].distance < 3.0) {
+                    crosshair.classList.add('active');
+                } else {
+                    crosshair.classList.remove('active');
+                }
+
+                // ドアのアニメーション
+                doors.forEach(door => {
+                    const targetSlide = door.userData.isOpen ? door.userData.width * 0.26 : 0
+                    door.userData.slide += (targetSlide - door.userData.slide) * 9 * delta
+                    door.children[0].position.x = -door.userData.width / 4 - door.userData.slide
+                    door.children[1].position.x = door.userData.width / 4 + door.userData.slide
+                });
+
+                // アイテムのアニメーション
+                activeItems.forEach(item => {
+                    item.rotation.y += 2.0 * delta;
+                    if(item.userData.floating) {
+                        item.position.y = item.userData.baseY + Math.sin(time * 0.003) * 0.1;
+                    }
+                });
+                
+                updateMinimap();
+            }
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
