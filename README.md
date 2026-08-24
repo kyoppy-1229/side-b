@@ -45,6 +45,12 @@ npm run build
 `http://localhost:5173/side-b/#/trial`（公開環境では `https://<host>/side-b/#/trial`、
 `/side-b/trial` でも `public/404.html` 経由で同じ場所へ入ります）から、**体験版**が始まります。
 
+> **【暫定】いまは入口が体験版です。** ハッシュを付けずに開いたアクセス（`http://localhost:5173/side-b/`、
+> 公開環境の `https://<host>/side-b/`）は起動時に `#/trial` へ寄せます（`src/trial/mode.js` の
+> `TRIAL_IS_DEFAULT_ENTRY` → `applyDefaultEntry()`、呼び出しは `src/boot.js`）。本編は `#/` を、
+> デバッグコンソールは `#/debug` を明示すればこれまでどおり開けます。通常版の公開に戻すときは
+> `TRIAL_IS_DEFAULT_ENTRY` を `false` にするだけです。
+
 ```text
 導入（同窓会 → 新PC → 再ログイン → 検索 → 水野からのDM）
 → 復刻版SIDE-Bを開く

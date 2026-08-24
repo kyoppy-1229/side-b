@@ -39,6 +39,8 @@ const {
   isTrialPath,
   isTrialLocation,
   normalizeTrialLocation,
+  applyDefaultEntry,
+  TRIAL_IS_DEFAULT_ENTRY,
   resolveGameMode,
   setGameMode
 } = await import('../src/trial/mode.js')
@@ -157,8 +159,25 @@ window.location.pathname = '/side-b/'
 assert.equal(isTrialLocation(), false)
 assert.equal(normalizeTrialLocation(), false)
 
+// 【暫定】ハッシュのない入口（`<base>/`）は体験版へ送る。
+assert.equal(TRIAL_IS_DEFAULT_ENTRY, true, '公開中の入口は体験版')
+window.location.hash = ''
+window.location.pathname = '/side-b/'
+assert.equal(applyDefaultEntry(), true)
+assert.equal(window.location.hash, TRIAL_PATH, '入口は体験版に寄せる')
+assert.equal(resolveGameMode(), GAME_MODES.TRIAL)
+// ハッシュ付きのアクセスには触らない — 本編もデバッグコンソールもそのまま。
+for(const hash of ['#/', '#/debug', '#/bbs']){
+  window.location.hash = hash
+  assert.equal(applyDefaultEntry(), false, hash)
+  assert.equal(window.location.hash, hash, hash)
+}
+window.location.hash = '#/'
+assert.equal(resolveGameMode(), GAME_MODES.FULL, '本編は #/ で開ける')
+
 // The mode is decided once, at boot, and read everywhere else.
 assert.ok(bootSource.includes('normalizeTrialLocation()'))
+assert.ok(bootSource.includes('applyDefaultEntry()'))
 assert.ok(bootSource.includes('setGameMode('))
 assert.ok(bootSource.includes('TRIAL_STORAGE_SCOPE'))
 assert.ok(bootSource.includes('isDebugLocation()'))

@@ -21,6 +21,12 @@ export const TRIAL_STORAGE_SCOPE = 'trial'
 
 export const TRIAL_PATH = '/trial'
 
+// 【暫定】公開しているのは体験版だけなので、入口（ハッシュを持たないアクセス、
+// たとえば GitHub Pages の `<base>/`）は体験版へ送る。ハッシュ付きのアクセスは
+// 素通しなので、本編は `#/`、デバッグコンソールは `#/debug` で今までどおり開ける。
+// 通常版の公開に戻すときは、この定数を false にするだけでよい。
+export const TRIAL_IS_DEFAULT_ENTRY = true
+
 const TRIAL_HASH_PATTERN = /^\/trial(\/|\?|$)/
 // GitHub Pages (via public/404.html) and `vite dev` can both hand us
 // `<base>/trial` with no hash at all; that spelling counts too.
@@ -52,6 +58,17 @@ export function normalizeTrialLocation(){
   if(typeof window === 'undefined' || !window.location) return false
   if(hashPath()) return false
   if(!TRIAL_PATHNAME_PATTERN.test(String(window.location.pathname || ''))) return false
+  window.location.hash = TRIAL_PATH
+  return true
+}
+
+// 【暫定】入口を体験版にする（TRIAL_IS_DEFAULT_ENTRY）。normalizeTrialLocation()
+// のあと、ルーターがロケーションを読む前に呼ぶこと。ハッシュがあるアクセスには
+// 触らないので、本編・デバッグ・個別URLはこれまでと同じ挙動のまま。
+export function applyDefaultEntry(){
+  if(!TRIAL_IS_DEFAULT_ENTRY) return false
+  if(typeof window === 'undefined' || !window.location) return false
+  if(hashPath()) return false
   window.location.hash = TRIAL_PATH
   return true
 }
