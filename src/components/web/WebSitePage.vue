@@ -23,7 +23,10 @@ const props = defineProps({
   siteId: { type: String, required: true },
   path: { type: String, default: '/' },
   query: { type: Object, default: () => ({}) },
-  notFound: { type: Boolean, default: false }
+  notFound: { type: Boolean, default: false },
+  // Story-only pages may offer a way back to Messages. The trial's last page is
+  // read and nothing more, so the shell turns the offer off there.
+  allowReturnMessages: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['navigate', 'open-url', 'return-messages'])
@@ -49,9 +52,12 @@ provide(WEB_SITE_KEY, {
   site,
   page,
   toUrl,
+  canReturnMessages: computed(() => props.allowReturnMessages),
   navigate: (url) => emit('navigate', toUrl(url)),
   openInNewTab: (url) => emit('open-url', toUrl(url)),
-  returnMessages: () => emit('return-messages')
+  returnMessages: () => {
+    if(props.allowReturnMessages) emit('return-messages')
+  }
 })
 
 // Following a link inside a site should start the new page at the top, the way

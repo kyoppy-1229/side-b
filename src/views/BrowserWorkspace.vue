@@ -60,6 +60,7 @@
         :path="tab.state?.path || '/'"
         :query="tab.state?.query || {}"
         :not-found="Boolean(tab.state?.notFound)"
+        :allow-return-messages="!trialEdition"
         @navigate="browser.navigateInTab(tab.id, $event)"
         @open-url="openUrl"
         @return-messages="openMessages"
@@ -101,6 +102,7 @@ import { STORY_CHAPTERS } from '../story/chapters.js'
 import { STORY_EVENTS } from '../story/events.js'
 import { STORY_MILESTONES } from '../story/transitions.js'
 import { FIXED_TAB_IDS, MESSAGES_URL, TRACE_SEARCH_URL, VIRTUAL_PAGE_TYPES, VIRTUAL_URLS } from '../virtual-web/constants.js'
+import { isTrialMode } from '../trial/mode.js'
 import { isUrlBlockedInTrial } from '../trial/restrictions.js'
 import BBSView from './BBSView.vue'
 import GamePage from '../components/game/GamePage.vue'
@@ -137,6 +139,10 @@ const SUGGESTED_URLS = Object.freeze([
 ])
 
 const suggestedUrls = computed(() => SUGGESTED_URLS.filter((entry) => !isUrlBlockedInTrial(entry.url)))
+
+// The trial's last page is the saved log itself: it is read, and no page offers
+// a way on from there. The mode is decided at boot and never changes after it.
+const trialEdition = isTrialMode()
 
 function pageKey(tab, reloadKey){
   return `${tab.id}:${reloadKey}`

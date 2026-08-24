@@ -18,7 +18,7 @@ import { useStoryStore } from './story.js'
 import { STORY_CHAPTERS } from '../story/chapters.js'
 import { STORY_MILESTONES } from '../story/transitions.js'
 import { isTrialMode } from '../trial/mode.js'
-import { canOpenTrialRevival } from '../trial/flow.js'
+import { canOpenTrialArchive, canOpenTrialRevival, markTrialBbsFound } from '../trial/flow.js'
 import { isUrlBlockedInTrial } from '../trial/restrictions.js'
 
 const MAX_HISTORY_LENGTH = 50
@@ -113,6 +113,19 @@ function canOpenPrivateStoryArchive(){
   const story = useStoryStore()
   return story.hasMilestone(STORY_MILESTONES.BBS_OPENED)
     || story.hasReached(STORY_CHAPTERS.CH2_RECORDS_2015, 'bbs_opened')
+    // The trial arrives from the other side. Nobody shares the address there, so
+    // finding it is the trial's last puzzle; the page answers once 水野 has
+    // written about the board, and the story stays where he left it.
+    || (isTrialMode() && canOpenTrialArchive(story))
+}
+
+// The trial's own note that the player got there. It moves no chapter — it is
+// what lets Messages offer the end of the trial once the log has been read.
+function noteTrialArchiveVisit(resolved){
+  if(!isTrialMode()) return
+  if(resolved.normalizedUrl !== VIRTUAL_URLS.BBS_THREAD) return
+  if(resolved.pageType === VIRTUAL_PAGE_TYPES.ERROR) return
+  markTrialBbsFound(useStoryStore())
 }
 
 // A page the player is not allowed here, rendered as the browser failing to
@@ -137,10 +150,10 @@ function guardPrivateStoryArchive(resolved){
   return refuse(resolved, { privateArchive: true })
 }
 
-// The trial's ceiling. Everything past "there was a BBS" belongs to the full
-// game, so the archive, the private log and the original build stay unreachable
-// however the player asks for them — and the revival build only opens once 水野
-// has actually sent it. Outside the trial this is a no-op.
+// The trial's ceiling. Everything the saved log points at belongs to the full
+// game, so the school archive and the original build stay unreachable however
+// the player asks for them — and the revival build only opens once 水野 has
+// actually sent it. Outside the trial this is a no-op.
 function guardTrialEdition(resolved){
   if(!isTrialMode()) return resolved
   if(isUrlBlockedInTrial(resolved.normalizedUrl)) return refuse(resolved, { trialLimited: true })
@@ -152,7 +165,9 @@ function guardTrialEdition(resolved){
 
 // Every route into a tab goes through this pair.
 function guardResolvedUrl(resolved){
-  return guardTrialEdition(guardPrivateStoryArchive(resolved))
+  const guarded = guardTrialEdition(guardPrivateStoryArchive(resolved))
+  noteTrialArchiveVisit(guarded)
+  return guarded
 }
 
 function readStoredBrowser(){

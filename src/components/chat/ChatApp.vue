@@ -47,6 +47,7 @@
         :input-value="inputValue"
         :can-send="canSend"
         :cta-label="ctaLabel"
+        :footer-note="footerNote"
         :fresh-thread="isFreshThread"
         :player-name="playerName"
         :player-avatar="PLAYER_AVATAR"
@@ -125,7 +126,7 @@ import dmAfterRevival from '../../data/dm_after_revival.json'
 import dmTrialAfterRevival from '../../data/trial_dm_after_revival.json'
 import birdPhoto from '../../photo/鳥.jpg'
 import { MIZUNO_AVATAR, PLAYER_AVATAR } from './avatars.js'
-import { isTrialAfterRevivalChat, markTrialComplete } from '../../trial/flow.js'
+import { isTrialAfterRevivalChat, isTrialBbsFound, markTrialComplete } from '../../trial/flow.js'
 import { MESSAGES_PATHS, VIRTUAL_URLS } from '../../virtual-web/constants.js'
 import ChatContacts from './ChatContacts.vue'
 import ChatHome from './ChatHome.vue'
@@ -520,9 +521,18 @@ const activeLinkCard = computed(() => {
   if(!isComplete.value || trialThread.value) return null
   return LINK_CARDS[step.value] || null
 })
+// 水野's last line is the end of the trial's conversation. What follows is the
+// player's own search for the saved log, so the thread offers nothing while it
+// has not been found — a button here would end the trial before its last page
+// has been read.
+const trialBbsFound = computed(() => isTrialBbsFound(storyState))
 const ctaLabel = computed(() => {
-  if(trialThread.value && isComplete.value) return '体験版を終える'
+  if(trialThread.value && isComplete.value) return trialBbsFound.value ? '体験版を終える' : ''
   return isComplete.value ? '共有リンクを確認' : '次のメッセージ'
+})
+const footerNote = computed(() => {
+  if(!trialThread.value || !isComplete.value || trialBbsFound.value) return ''
+  return '会話はここで止まっている。掲示板は自分で探すしかない。'
 })
 const progressPercent = computed(() => {
   if(!script.value.length) return 0
@@ -560,9 +570,10 @@ function next(){
     revealNext()
     return
   }
-  // Reading the last line of the trial's thread is the end of the trial.
+  // Reading the saved log is the end of the trial. Until it has been read the
+  // thread does nothing, whichever way `next` is asked for.
   if(trialThread.value){
-    markTrialComplete(storyState)
+    if(trialBbsFound.value) markTrialComplete(storyState)
     return
   }
   if(activeLinkCard.value) openLinkedPage(activeLinkCard.value.url)

@@ -1,13 +1,17 @@
 // What the trial does not hand out.
 //
-// The trial stops at "there was a BBS, and it might still be there". Everything
-// past that point is the full game's, so the pages that would carry the player
-// into it are simply not reachable while the tab is running the trial — not by
-// search, not from the new-tab shortcuts, and not by typing the address.
+// The trial stops on the saved log: the player finds it, reads it, and that is
+// the end. The pages the log would carry them into are the full game's, so they
+// are simply not reachable while the tab is running the trial — not by search,
+// not from the new-tab shortcuts, and not by typing the address.
 //
-// None of this edits the underlying data: the archive, its graduation record and
-// the BBS log are all still there, unchanged, for the full game. This is a
-// filter that only exists while `isTrialMode()` is true.
+// The log itself is not on this list. It is guarded by the story instead
+// (store/virtualBrowser.js), which opens it only after 水野 has written about
+// the board — the trial's own last puzzle, not a page it withholds.
+//
+// None of this edits the underlying data: the archive and its graduation record
+// are still there, unchanged, for the full game. This is a filter that only
+// exists while `isTrialMode()` is true.
 
 import { VIRTUAL_URLS } from '../virtual-web/constants.js'
 import { isTrialMode } from './mode.js'
@@ -22,13 +26,10 @@ export const TRIAL_HIDDEN_SEARCH_DOCUMENT_IDS = Object.freeze([
 // Pages the trial never opens, whatever the player types.
 //
 //   * 学校アーカイブ and its 2015 record — the full game's chapter 2 material;
-//   * the private BBS log — the trial ends before it (the story guard would
-//     refuse it anyway, this is the belt to that pair of braces);
 //   * the original build — the full game's second half.
 export const TRIAL_BLOCKED_URLS = Object.freeze([
   VIRTUAL_URLS.SCHOOL_ARCHIVE,
   VIRTUAL_URLS.SCHOOL_GRADUATION_2015,
-  VIRTUAL_URLS.BBS_THREAD,
   VIRTUAL_URLS.GAME_ORIGINAL
 ])
 

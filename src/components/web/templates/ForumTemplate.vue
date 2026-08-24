@@ -74,7 +74,15 @@
         <div v-if="isStoryArchive" class="forum-story-links">
           <p>保存ログ内で参照されていた記事：</p>
           <WebLink :to="page.data.newsUrl">2015年3月2日の保存ニュース</WebLink>
-          <button type="button" class="web-button" @click="returnMessages">Messagesへ戻る（物語を進める）</button>
+          <button
+            v-if="canReturnMessages"
+            type="button"
+            class="web-button"
+            @click="returnMessages"
+          >Messagesへ戻る（物語を進める）</button>
+          <!-- The trial ends on this page: it is read, and nothing here moves
+               the story on. -->
+          <span v-else class="forum-story-links__note">読み終えたら、Messagesから体験版を終了できます。</span>
         </div>
 
         <div v-if="!isStoryArchive" class="forum-form">
@@ -117,7 +125,15 @@
       </section>
     </template>
 
-    <WebDefaultBody v-else :site="site" :page="page" :query="query" list-variant="compact" />
+    <!-- The board's robots.txt is a file, not a post: no share row on it. -->
+    <WebDefaultBody
+      v-else
+      :site="site"
+      :page="page"
+      :query="query"
+      list-variant="compact"
+      :show-share="page.kind !== 'file'"
+    />
   </WebChrome>
 </template>
 
@@ -139,7 +155,7 @@ const props = defineProps({
 })
 
 const posted = ref(false)
-const { returnMessages: returnMessagesFromStory } = useWebSite()
+const { canReturnMessages, returnMessages: returnMessagesFromStory } = useWebSite()
 const threads = computed(() => siteArticles(props.site))
 const breadcrumbs = computed(() => buildBreadcrumbs(props.site, props.page))
 const isStoryArchive = computed(() => Boolean(props.page.data?.storyArchive))
@@ -200,6 +216,7 @@ function returnMessages(){
 }
 
 .forum-story-links p{ margin:0; color:var(--web-muted) }
+.forum-story-links__note{ color:var(--web-muted) }
 
 .forum-table{
   width:100%;

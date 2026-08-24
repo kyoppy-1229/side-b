@@ -3,8 +3,9 @@
 // Where check-trial.mjs checks the trial's data and its rules one at a time,
 // this walks the whole run through the real stores — prologue, the revival
 // build, every required memory, the clear screen, 水野's last message, the
-// restart — and renders the screens it adds with the actual components (Vite
-// loads the .vue files; there is no DOM, so only setup and the template run).
+// address the player has to find for themselves, the saved log, the restart —
+// and renders the screens it adds with the actual components (Vite loads the
+// .vue files; there is no DOM, so only setup and the template run).
 //
 // It finishes by checking that the full game is exactly where it was: its save,
 // its archive, its search and its memory layer.
@@ -49,6 +50,7 @@ const debugStore = await load('/src/store/debug.js')
 const GamePage = (await load('/src/components/game/GamePage.vue')).default
 const ChatApp = (await load('/src/components/chat/ChatApp.vue')).default
 const TrialEndScene = (await load('/src/views/TrialEndScene.vue')).default
+const WebSitePage = (await load('/src/components/web/WebSitePage.vue')).default
 
 const { STORY_EVENTS } = events
 const { STORY_CHAPTERS } = chapters
@@ -70,6 +72,11 @@ browser.initializeBrowser()
 // ---- the revival build is not reachable yet ---------------------------------
 let tab = browser.openVirtualUrl(VIRTUAL_URLS.GAME_REVIVAL)
 assert.equal(tab.pageType, VIRTUAL_PAGE_TYPES.ERROR, '共有前の復刻版は開けない')
+browser.closeTab(tab.id)
+
+// ---- and neither is the saved log ------------------------------------------
+tab = browser.openVirtualUrl(VIRTUAL_URLS.BBS_THREAD)
+assert.equal(tab.pageType, VIRTUAL_PAGE_TYPES.ERROR, '水野が書く前の保存ログは開けない')
 browser.closeTab(tab.id)
 
 // ---- prologue ---------------------------------------------------------------
@@ -136,34 +143,94 @@ assert.ok(!/MISSION|COMPLETE|コンプリート/.test(clearHtml), '派手な演�
 // write; the component did it on its own timer.
 assert.equal(story.step, 'exploration_complete', 'クリアで探索完了が報告される')
 
-// ---- clear → 水野 → end -----------------------------------------------------
+// ---- clear → 水野 writes, and stops ----------------------------------------
 assert.equal(flow.completeTrialRevival(story), false, '報告は一度きり')
 assert.equal(story.step, 'exploration_complete')
 assert.equal(flow.isTrialAfterRevivalChat(story), true)
-assert.equal(flow.markTrialComplete(story), true)
-assert.equal(flow.isTrialComplete(story), true)
 assert.equal(story.chapter, STORY_CHAPTERS.CH1_REVIVAL, '体験版は第2章へ行かない')
+assert.equal(flow.canOpenTrialArchive(story), true, 'ここから保存ログの住所が通る')
+assert.equal(flow.isTrialBbsFound(story), false, 'まだ見つけていない')
 
 // ---- 水野's last message, rendered from the real thread ---------------------
 // The debug store's "reveal the whole thread" switch stands in for the player
-// tapping through the 13 lines.
+// tapping through the lines.
 debugStore.useDebugStore().setPref('autoRevealChat', true)
-const thread = createSSRApp({ render: () => h(ChatApp, { active: true }) })
-thread.use(pinia)
-const threadHtml = await renderToString(thread)
+async function renderThread(){
+  const thread = createSSRApp({ render: () => h(ChatApp, { active: true }) })
+  thread.use(pinia)
+  return renderToString(thread)
+}
+let threadHtml = await renderThread()
 assert.ok(threadHtml.includes('復刻版、見終わった？'), '体験版の会話が出る')
 assert.ok(threadHtml.includes('掲示板があったんだよ'))
-assert.ok(threadHtml.includes('体験版を終える'), '最後のボタンで体験版が終わる')
+assert.ok(threadHtml.includes('自分で探してみる'), '探すのは player の仕事として終わる')
 // Nothing is shared, and nothing of the later chapters is said.
 assert.ok(!threadHtml.includes('みんなの掲示板：保存ログ'), '共有リンクは出さない')
 assert.ok(!threadHtml.includes('minna-bbs'), 'URLも出さない')
+assert.ok(!threadHtml.includes('archive/private'), '住所の一部も出さない')
 for(const forbidden of ['青い鳥', 'ぬいぐるみ', '地下', '20:20', '変死']){
   assert.ok(!threadHtml.includes(forbidden), `体験版の画面に出さない: ${forbidden}`)
 }
+// The conversation is over, and it offers no way to end the trial yet: the last
+// page of the trial has not been read.
+assert.ok(!threadHtml.includes('体験版を終える'), '読む前に終わらせるボタンは出さない')
+assert.ok(threadHtml.includes('掲示板は自分で探すしかない'), '会話が止まったことを言う')
+
+// ---- the trail the player follows on the ordinary web -----------------------
+// Two pages that never mention each other: the 管理人's notice thread carries
+// the day the log was moved (and that the name is that day's 8 digits), the
+// 検索避け article carries the directory. Both are ordinary web pages, so the
+// trial hides neither; the log itself is in no index at all.
+const noticeUrl = 'https://minna-bbs.net/thread/talk/1130'
+const directoryUrl = 'https://web-koubou.jp/entry/2015/noindex-directory'
+for(const [query, url] of [['保存ログ', noticeUrl], ['削除依頼', noticeUrl], ['検索避け', directoryUrl], ['robots.txt', directoryUrl]]){
+  const found = searchIndex.searchVirtualWebDetailed(query).results.some((result) => result.url === url)
+  assert.ok(found, `体験版の検索で辿れる: "${query}" -> ${url}`)
+}
+for(const query of ['保存ログ', '掲示板', '2015', '削除依頼']){
+  const leaked = searchIndex.searchVirtualWebDetailed(query).results.some((result) => result.url === VIRTUAL_URLS.BBS_THREAD)
+  assert.equal(leaked, false, `保存ログ自体は検索に出ない: ${query}`)
+}
+
+// ---- typing the address the two pages add up to ----------------------------
+// A new tab and the address typed into it, the way the player would.
+browser.openBlankTab()
+const logTab = browser.submitAddress('minna-bbs.net/archive/private/20150307')
+assert.equal(logTab.pageType, VIRTUAL_PAGE_TYPES.WEB_SITE, '見つけた住所は開く')
+assert.equal(logTab.currentUrl, VIRTUAL_URLS.BBS_THREAD)
+assert.equal(flow.isTrialBbsFound(story), true, '読んだことが記録される')
+// Reading it moves no chapter: 水野's thread stays exactly where he left it.
+assert.equal(story.chapter, STORY_CHAPTERS.CH1_REVIVAL)
+assert.equal(story.step, 'exploration_complete')
+
+// ---- the log, rendered the way the trial renders it ------------------------
+const logApp = createSSRApp({
+  render: () => h(WebSitePage, {
+    siteId: 'minna-bbs',
+    path: '/archive/private/20150307',
+    allowReturnMessages: false
+  })
+})
+logApp.use(pinia)
+const logHtml = await renderToString(logApp)
+assert.ok(logHtml.includes('非公開保存ログ'), '保存ログとして開く')
+assert.ok(logHtml.includes('とりあえず完成'), '書き込みが読める')
+assert.ok(!logHtml.includes('Messagesへ戻る'), '物語を進めるボタンは出さない')
+assert.ok(logHtml.includes('体験版を終了できます'), '読み終えたあとの行き先だけ書く')
+
+// ---- read it, and Messages offers the end ----------------------------------
+threadHtml = await renderThread()
+assert.ok(threadHtml.includes('体験版を終える'), '読んだあとに終了ボタンが出る')
+assert.ok(!threadHtml.includes('掲示板は自分で探すしかない'))
+assert.ok(!threadHtml.includes('minna-bbs'), '会話には最後までURLを出さない')
 debugStore.useDebugStore().setPref('autoRevealChat', false)
 
+assert.equal(flow.markTrialComplete(story), true)
+assert.equal(flow.isTrialComplete(story), true)
+assert.equal(story.chapter, STORY_CHAPTERS.CH1_REVIVAL, '終わっても第2章へは行かない')
+
 // ---- no back doors ----------------------------------------------------------
-for(const url of [VIRTUAL_URLS.SCHOOL_ARCHIVE, VIRTUAL_URLS.SCHOOL_GRADUATION_2015, VIRTUAL_URLS.BBS_THREAD, VIRTUAL_URLS.GAME_ORIGINAL]){
+for(const url of [VIRTUAL_URLS.SCHOOL_ARCHIVE, VIRTUAL_URLS.SCHOOL_GRADUATION_2015, VIRTUAL_URLS.GAME_ORIGINAL]){
   const blocked = browser.openVirtualUrl(url)
   assert.equal(blocked.pageType, VIRTUAL_PAGE_TYPES.ERROR, `体験版では開けない: ${url}`)
 }
@@ -171,8 +238,6 @@ for(const url of [VIRTUAL_URLS.SCHOOL_ARCHIVE, VIRTUAL_URLS.SCHOOL_GRADUATION_20
 for(const typedUrl of [
   'school.archive.local',
   'https://school.archive.local/',
-  'minna-bbs.net/archive/private/20150307',
-  'https://minna-bbs.net/archive/private/20150307/',
   'side-b.local/original'
 ]){
   const typed = browser.submitAddress(typedUrl)

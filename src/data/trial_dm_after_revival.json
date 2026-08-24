@@ -57,11 +57,21 @@
   {
     "id": "trial-after-revival-012",
     "from": "水野",
-    "text": "探しとくわ"
+    "text": "俺も探したんだけど、板から辿っても出てこないんだよな"
   },
   {
     "id": "trial-after-revival-013",
+    "from": "水野",
+    "text": "消されたスレは管理人が別のところに移してるらしい"
+  },
+  {
+    "id": "trial-after-revival-014",
+    "from": "水野",
+    "text": "残ってるなら、そこにあると思う"
+  },
+  {
+    "id": "trial-after-revival-015",
     "from": "主人公",
-    "text": "頼む"
+    "text": "自分で探してみる"
   }
 ]

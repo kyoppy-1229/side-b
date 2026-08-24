@@ -7,13 +7,19 @@
 //   → ch1_revival/link_received               ← 水野 shared the revival build
 //   → ch1_revival/exploring                   ← the build is open
 //   → ch1_revival/exploration_complete        ← every required memory recorded
-//   → 水野 writes about the BBS, and the trial ends there.
+//   → 水野 writes about the BBS, and stops there.
 //
-// The last beat is a trial-only mark rather than a chapter, because the full
-// game goes somewhere else from `exploration_complete` (the private archive, and
-// everything after it). Nothing here can be reached outside the trial: every
-// entry point checks the mode first, so the full game's progression is exactly
-// what it was.
+// From that message on, the trial's last piece is the player's own: 水野 hands
+// over nothing, so the saved log has to be found on the ordinary web (the
+// board's notice thread, the 検索避け article — see sites/forumSites.js) and
+// opened by typing its address. Reading it is where the trial ends; the story
+// itself does not move, so no chapter, no chat beat and no page beyond the log
+// is reached.
+//
+// The two marks below are trial-only, because the full game goes somewhere else
+// from `exploration_complete` (the private archive as a chapter, and everything
+// after it). Nothing here can be reached outside the trial: every entry point
+// checks the mode first, so the full game's progression is exactly what it was.
 
 import { STORY_CHAPTERS } from '../story/chapters.js'
 import { STORY_EVENTS } from '../story/events.js'
@@ -25,6 +31,7 @@ import { TRIAL_PATH, isTrialMode } from './mode.js'
 // they are saved, reloaded and reset by the machinery that already exists), but
 // no transition in the shared table reads them.
 export const TRIAL_MILESTONES = Object.freeze({
+  BBS_FOUND: 'trialBbsFound',
   COMPLETE: 'trialComplete'
 })
 
@@ -54,9 +61,30 @@ export function isTrialRevivalCleared(story){
   return isTrialMode() && story.hasMilestone(STORY_MILESTONES.REVIVAL_EXPLORATION_COMPLETE)
 }
 
+// The saved log. Nobody shares it, so the address is the trial's last puzzle —
+// but it only answers once 水野 has said the board existed, which keeps the
+// order of the trial intact even for a player who guesses the URL early.
+export function canOpenTrialArchive(story){
+  return isTrialRevivalCleared(story)
+}
+
+// The player got there. This records nothing about the story — the position
+// stays where 水野 left it — it only lets Messages offer the end of the trial
+// once the log has actually been opened.
+export function markTrialBbsFound(story){
+  if(!isTrialMode()) return false
+  return story.markMilestone(TRIAL_MILESTONES.BBS_FOUND, true)
+}
+
+export function isTrialBbsFound(story){
+  return isTrialMode() && story.hasMilestone(TRIAL_MILESTONES.BBS_FOUND)
+}
+
 // The thread 水野 opens after the revival build. In the trial it is a script of
 // its own (data/trial_dm_after_revival.json): the BBS is mentioned, nothing is
-// shared, and the story does not move on to the archive chapter.
+// shared — not even an address — and the story does not move on to the archive
+// chapter. It stays the last conversation of the trial: reading the saved log
+// adds no message to it.
 export function isTrialAfterRevivalChat(story){
   return isTrialRevivalCleared(story)
 }

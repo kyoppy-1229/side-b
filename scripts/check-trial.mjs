@@ -62,11 +62,14 @@ const {
 } = await import('../src/trial/restrictions.js')
 const {
   TRIAL_MILESTONES,
+  canOpenTrialArchive,
   canOpenTrialRevival,
   completeTrialRevival,
   isTrialAfterRevivalChat,
+  isTrialBbsFound,
   isTrialComplete,
   isTrialRevivalCleared,
+  markTrialBbsFound,
   markTrialComplete,
   openTrialRevival
 } = await import('../src/trial/flow.js')
@@ -428,14 +431,25 @@ assert.equal(isTrialRevivalCleared(story), false)
 assert.equal(isTrialAfterRevivalChat(story), false)
 
 // Clearing the build is what makes 水野 write.
+assert.equal(canOpenTrialArchive(story), false, '水野が書く前に保存ログは開かない')
 assert.equal(completeTrialRevival(story), true)
 assert.equal(story.step, 'exploration_complete')
 assert.equal(isTrialRevivalCleared(story), true)
 assert.equal(isTrialAfterRevivalChat(story), true)
 assert.equal(completeTrialRevival(story), false, 'クリアは一度きり')
 
-// The trial ends there. It never enters the archive chapter, and the BBS stays
-// shut whatever else happens.
+// From here the saved log answers — nobody handed the address over, so finding
+// it is the player's own work. Opening it is recorded, and it moves no chapter.
+assert.equal(canOpenTrialArchive(story), true)
+assert.equal(isTrialBbsFound(story), false)
+assert.equal(markTrialBbsFound(story), true)
+assert.equal(isTrialBbsFound(story), true)
+assert.equal(markTrialBbsFound(story), false, '記録は一度きり')
+assert.equal(story.chapter, STORY_CHAPTERS.CH1_REVIVAL, '保存ログを読んでも章は動かない')
+assert.equal(story.step, 'exploration_complete')
+assert.equal(story.hasMilestone(STORY_MILESTONES.BBS_OPENED), false, '本編の章イベントは立たない')
+
+// Reading it is where the trial ends. It never enters the archive chapter.
 assert.equal(markTrialComplete(story), true)
 assert.equal(isTrialComplete(story), true)
 assert.equal(markTrialComplete(story), false)
@@ -444,6 +458,7 @@ assert.equal(story.hasMilestone(STORY_MILESTONES.BBS_OPENED), false)
 assert.equal(story.hasMilestone(STORY_MILESTONES.BBS_COMPLETE), false)
 assert.equal(story.hasReached(STORY_CHAPTERS.CH2_RECORDS_2015), false)
 assert.equal(story.milestones[TRIAL_MILESTONES.COMPLETE], true)
+assert.equal(story.milestones[TRIAL_MILESTONES.BBS_FOUND], true)
 
 // It survives a reload: the mark is saved with the rest of the position.
 setActivePinia(createPinia())
@@ -480,22 +495,25 @@ setGameMode(GAME_MODES.TRIAL)
 for(const blocked of [
   VIRTUAL_URLS.SCHOOL_ARCHIVE,
   VIRTUAL_URLS.SCHOOL_GRADUATION_2015,
-  VIRTUAL_URLS.BBS_THREAD,
   VIRTUAL_URLS.GAME_ORIGINAL
 ]){
   assert.equal(isUrlBlockedInTrial(blocked), true, blocked)
   assert.ok(TRIAL_BLOCKED_URLS.includes(blocked))
 }
-// The revival build and the everyday web are exactly as reachable as before.
+// The revival build and the everyday web are exactly as reachable as before —
+// and so is the saved log, which the story guard now opens for the trial once
+// 水野 has written. It is not on the withheld list.
 for(const allowed of [
   VIRTUAL_URLS.GAME_REVIVAL,
   VIRTUAL_URLS.MESSAGES,
   VIRTUAL_URLS.TRACE_SEARCH,
   VIRTUAL_URLS.NEWS_20150302,
+  VIRTUAL_URLS.BBS_THREAD,
   'https://weatherline.jp/'
 ]){
   assert.equal(isUrlBlockedInTrial(allowed), false, allowed)
 }
+assert.equal(TRIAL_BLOCKED_URLS.includes(VIRTUAL_URLS.BBS_THREAD), false, '保存ログは体験版の遮断対象ではない')
 
 // 学校アーカイブ never appears in a search, whatever the query.
 assert.deepEqual(TRIAL_HIDDEN_SEARCH_DOCUMENT_IDS, ['school-archive-home', 'graduation-2015'])
@@ -517,9 +535,12 @@ assert.ok(virtualBrowserStoreSource.includes('function guardTrialEdition(resolve
 assert.ok(virtualBrowserStoreSource.includes('isUrlBlockedInTrial(resolved.normalizedUrl)'))
 assert.ok(virtualBrowserStoreSource.includes('canOpenTrialRevival(useStoryStore())'))
 assert.ok(virtualBrowserStoreSource.includes('guardTrialEdition(guardPrivateStoryArchive(resolved))'))
-// The BBS keeps its own, older guard.
+// The BBS keeps its own, older guard, with the trial's own way in beside it.
 assert.ok(virtualBrowserStoreSource.includes('function canOpenPrivateStoryArchive()'))
 assert.ok(virtualBrowserStoreSource.includes('STORY_MILESTONES.BBS_OPENED'))
+assert.ok(virtualBrowserStoreSource.includes('isTrialMode() && canOpenTrialArchive(story)'))
+assert.ok(virtualBrowserStoreSource.includes('function noteTrialArchiveVisit(resolved)'))
+assert.ok(virtualBrowserStoreSource.includes('markTrialBbsFound(useStoryStore())'))
 // The new-tab shortcuts drop what the trial does not hand out.
 assert.ok(browserWorkspaceSource.includes('SUGGESTED_URLS.filter((entry) => !isUrlBlockedInTrial(entry.url))'))
 
@@ -557,13 +578,15 @@ for(const forbidden of [
 // The full game's own after-BBS thread is untouched, and stays unreachable here.
 assert.ok(afterBbsScript.some((line) => (line.text || '').includes('青い鳥')), '通常版の台本はそのまま')
 
-// The thread shares nothing and ends the trial.
+// The thread shares nothing, and it only offers the end of the trial once the
+// saved log has been read.
 assert.ok(chatAppSource.includes('const trialThread = computed(() => isTrialAfterRevivalChat(storyState))'))
 assert.ok(chatAppSource.includes('trial_dm_after_revival.json'))
 assert.ok(chatAppSource.includes('if(!isComplete.value || trialThread.value) return null'), '共有リンクは出さない')
 assert.ok(chatAppSource.includes('if(trialThread.value) return cards'))
-assert.ok(chatAppSource.includes("return '体験版を終える'"))
-assert.ok(chatAppSource.includes('markTrialComplete(storyState)'))
+assert.ok(chatAppSource.includes("return trialBbsFound.value ? '体験版を終える' : ''"))
+assert.ok(chatAppSource.includes('if(trialBbsFound.value) markTrialComplete(storyState)'))
+assert.ok(chatAppSource.includes('会話はここで止まっている。掲示板は自分で探すしかない。'))
 // Opening the BBS is still the full game's business, and only from its own card.
 assert.ok(chatAppSource.includes('storyState.dispatch(STORY_EVENTS.BBS_OPENED)'))
 

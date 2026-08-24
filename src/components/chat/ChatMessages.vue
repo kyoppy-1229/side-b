@@ -81,12 +81,14 @@
           </span>
         </label>
       </form>
-      <button v-else class="messages__next" type="button" @click="emit('next')">
+      <button v-else-if="ctaLabel" class="messages__next" type="button" @click="emit('next')">
         <span>{{ ctaLabel }}</span>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="m9 5 7 7-7 7" />
         </svg>
       </button>
+      <!-- Nothing left to tap: the thread has said everything it is going to. -->
+      <p v-else-if="footerNote" class="messages__note">{{ footerNote }}</p>
     </footer>
   </section>
 </template>
@@ -105,6 +107,8 @@ const props = defineProps({
   inputValue: { type: String, default: '' },
   canSend: { type: Boolean, default: false },
   ctaLabel: { type: String, default: '次のメッセージ' },
+  // Shown in place of the button when there is nothing left to advance.
+  footerNote: { type: String, default: '' },
   // The thread was opened on a handset that never had the history.
   freshThread: { type: Boolean, default: false },
   playerName: { type: String, default: '' },
@@ -487,6 +491,15 @@ watch(() => props.waitingInput, value => {
   background:#1f5cad;
   transform:translateY(-1px);
   box-shadow:0 11px 22px rgba(40, 105, 199, 0.25);
+}
+
+.messages__note{
+  margin:0;
+  padding:3px 2px;
+  color:#7c8798;
+  font-size:11.5px;
+  line-height:1.7;
+  text-align:right;
 }
 
 .messages__next svg{

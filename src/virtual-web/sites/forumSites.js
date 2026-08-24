@@ -1,6 +1,15 @@
 // The general anonymous board. The story archive below uses the same forum
 // renderer but is deliberately a private, noindex path. It is not part of the
 // ordinary board, archive, site search, or recommendation surfaces.
+//
+// Nothing links to it, so the address has to be put together from two places
+// that never mention each other:
+//
+//   * the 管理人's notice thread (/thread/talk/1130) — saved pages are named
+//     after the day they were moved, and the days are listed there;
+//   * the directory itself (/archive/private/) — written down only off-site, in
+//     the 検索避け article on WEB工房ノート (techSites.js), and in this board's
+//     own robots.txt below.
 
 import { defineSite } from './kit.js'
 
@@ -188,6 +197,51 @@ export const minnaBbs = defineSite({
       ]
     },
     {
+      path: '/thread/talk/1130',
+      title: '【案内】削除依頼と保存ログの取り扱いについて',
+      kind: 'thread',
+      category: '雑談',
+      date: '2012-06-03',
+      updatedAt: '2026-04-19',
+      keywords: ['削除依頼', '保存ログ', '過去ログ', '管理人', '案内', '検索避け', '掲示板'],
+      views: 15800,
+      excerpt: '管理人による案内スレッド。削除依頼のあったスレッドを保存領域へ移す手順と、移した日の記録が並んでいる。',
+      posts: [
+        { no: 1, name: '管理人', date: '2012/06/03 10:02', text: '削除依頼の取り扱いについて案内します。\n依頼があったスレッドは板の一覧から外し、閲覧のみの保存領域へ移します。' },
+        { no: 2, name: '管理人', date: '2012/06/03 10:08', text: '保存領域のページ名は、移した日の数字8桁です。\n年4桁・月2桁・日2桁の順で、区切りは入れません。' },
+        { no: 3, name: '管理人', date: '2012/06/03 10:15', text: '保存領域には検索避けの設定を入れています。板・過去ログ一覧・検索のどこにも出ませんので、閲覧はアドレスを直接入力する形になります。' },
+        { no: 4, name: '管理人', date: '2012/06/03 10:21', text: '置き場所（どのディレクトリの下か）はここには書きません。個別の問い合わせにもお答えしていません。' },
+        { no: 5, name: '名無しさん', date: '2012/06/04 22:41', text: '消さずに残すのはなんで' },
+        { no: 6, name: '管理人', date: '2012/06/05 09:12', replyTo: 5, text: '書いた本人から後で読み返したいと言われることがあるためです。\n完全に消すのは、依頼者からその指定があったときだけです。' },
+        { no: 7, name: '管理人', date: '2012/08/19 18:30', text: '8月19日、1件を保存領域へ移しました。' },
+        { no: 8, name: '管理人', date: '2015/03/07 21:44', text: '3月7日、1件を保存領域へ移しました。\n依頼者の希望により、板名とスレッドタイトルは伏せます。' },
+        { no: 9, name: '名無しさん', date: '2015/03/09 12:05', replyTo: 8, text: '最近消えたスレって全部そこに行ってるの？' },
+        { no: 10, name: '管理人', date: '2015/03/10 08:50', replyTo: 9, text: '依頼があったものだけです。書き込み数で流れたものは通常の過去ログに入ります。' },
+        { no: 11, name: '管理人', date: '2016/11/12 19:02', text: '11月12日、2件を保存領域へ移しました。' },
+        { no: 12, name: '管理人', date: '2020/05/02 15:26', text: '5月2日、1件を保存領域へ移しました。' },
+        { no: 13, name: '管理人', date: '2023/02/26 11:40', text: '2月26日、1件を保存領域へ移しました。' },
+        { no: 14, name: '名無しさん', date: '2026/04/18 23:58', text: '10年以上前のログもまだ残ってるんだな' },
+        { no: 15, name: '管理人', date: '2026/04/19 09:30', replyTo: 14, text: '消していません。閲覧のみで残しています。' }
+      ]
+    },
+    // The board's own robots.txt. Not listed and not indexed: it answers only if
+    // the player thinks to ask for it, which is the reward for reading the
+    // 検索避け article on WEB工房ノート.
+    {
+      path: '/robots.txt',
+      title: 'robots.txt',
+      kind: 'file',
+      date: '2015-04-20',
+      updatedAt: '2015-04-20',
+      noindex: true,
+      weight: 0,
+      keywords: ['robots.txt'],
+      excerpt: '検索避けの指定ファイル。',
+      body: [
+        { code: 'User-agent: *\nDisallow: /archive/private/\nDisallow: /search\nCrawl-delay: 10', lang: 'text' }
+      ]
+    },
+    {
       path: '/thread/pc/8842',
       title: '10年前のPC、まだ使ってる人いる？',
       kind: 'thread',
@@ -328,7 +382,7 @@ export const minnaBbs = defineSite({
       kind: 'thread',
       category: '雑談',
       date: '2025-10-28',
-      updatedAt: '2026-01-09',
+      updatedAt: '2026-02-04',
       keywords: ['サイト', '閉鎖', '昔', '掲示板', '保存'],
       views: 20100,
       excerpt: '閉鎖した個人サイトの話題。保存サービスの使い方や、リンク集から辿る方法が挙がったスレッド。',
@@ -338,7 +392,9 @@ export const minnaBbs = defineSite({
         { no: 3, name: '名無しさん', date: '2025/10/29 08:31', text: '当時の相互リンク集から辿るのも有効\nリンク集ごと消えてなければ' },
         { no: 4, name: '名無しさん', date: '2025/11/02 20:14', text: '掲示板を外部サービスで置いてたサイトは、掲示板側も消えてるのが辛い' },
         { no: 5, name: '名無しさん', date: '2025/12/18 11:40', text: '作者が名前変えて別の場所でやってるパターンもある\n文体で気づいた' },
-        { no: 6, name: '名無しさん', date: '2026/01/09 23:02', text: '結局、自分が保存しておくしかないんだよな' }
+        { no: 6, name: '名無しさん', date: '2026/01/09 23:02', text: '結局、自分が保存しておくしかないんだよな' },
+        { no: 7, name: '名無しさん', date: '2026/02/03 19:12', text: 'ここの板も、依頼があったスレは消さずに別の場所へ移してるらしい\n案内スレに移した日付だけ並んでる' },
+        { no: 8, name: '名無しさん', date: '2026/02/04 07:26', replyTo: 7, text: 'その場所がどこかは書いてないんだよな\n検索にも出ないから、アドレスを知ってる人しか読めない' }
       ]
     },
     {
