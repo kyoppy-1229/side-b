@@ -61,6 +61,10 @@
         <span class="dbg-item__sub">{{ link.short }}</span>
       </button>
     </div>
+    <div class="dbg-stack">
+      <button type="button" class="dbg-btn dbg-btn--primary dbg-btn--wide" @click="openInvestigationPreview">最終章：聞き込み＋校内PC（試作）</button>
+      <p class="dbg-hint">デバッグ用セーブを第8章へ進め、最終捜査画面を開きます。本編セーブには影響しません。</p>
+    </div>
     <p class="dbg-label">エラー系</p>
     <div class="dbg-grid-2">
       <button type="button" class="dbg-btn" @click="run(() => browser.submitAddress('outside.example/not-found'), '未登録URL')">未登録URL</button>
@@ -92,6 +96,7 @@ import { ref } from 'vue'
 import DebugSection from './DebugSection.vue'
 import { useDebugConsole } from './debugContext.js'
 import { MESSAGES_URL, TRACE_SEARCH_URL, VIRTUAL_URLS } from '../../virtual-web/constants.js'
+import { STORY_CHAPTERS } from '../../story/chapters.js'
 
 const shell = useDebugConsole()
 const browser = shell.browser
@@ -125,6 +130,12 @@ function submitAddress(){
 function open(link){
   browser.openVirtualUrl(link.url)
   shell.notify(`開いた: ${link.label}`)
+}
+
+function openInvestigationPreview(){
+  shell.storyState.debugSetPosition(STORY_CHAPTERS.CH8_TEN_PEOPLE, 'hypothesis', { syncMilestones: true })
+  browser.openVirtualUrl(VIRTUAL_URLS.SCHOOL_TERMINAL)
+  shell.notify('最終章の捜査試作を開きました')
 }
 
 function activate(tab){

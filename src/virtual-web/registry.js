@@ -61,6 +61,12 @@ export const virtualWebRoutes = Object.freeze([
     pageType: VIRTUAL_PAGE_TYPES.GAME_ORIGINAL
   }),
   createRoute({
+    id: 'school-terminal',
+    title: '2015年度 校内バックアップ端末',
+    url: VIRTUAL_URLS.SCHOOL_TERMINAL,
+    pageType: VIRTUAL_PAGE_TYPES.SCHOOL_TERMINAL
+  }),
+  createRoute({
     id: 'blank',
     title: '新しいタブ',
     url: VIRTUAL_URLS.BLANK,

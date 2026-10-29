@@ -6,6 +6,9 @@
 // Nothing here knows anything about the SIDE-B story. Story pages live in
 // registry.js / searchIndex.js and are resolved before these sites are.
 
+import { makeAnnualArchive } from './annualArchive.js'
+import { terminalGuidePagesFor } from './terminalGuides.js'
+
 const DEFAULT_AUTHORITY = 0.5
 
 function eraOf(dateText){
@@ -163,7 +166,11 @@ export function defineSite(config){
     data: Object.freeze({ ...(config.data || {}) })
   }
 
-  const pages = Object.freeze((config.pages || []).map((page) => normalizePage(page, site)))
+  const pages = Object.freeze([
+    ...(config.pages || []),
+    ...makeAnnualArchive(config),
+    ...terminalGuidePagesFor(config)
+  ].map((page) => normalizePage(page, site)))
   site.pages = pages
   site.pageByPath = new Map(pages.map((page) => [page.path, page]))
   return Object.freeze(site)

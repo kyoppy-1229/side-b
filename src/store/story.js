@@ -207,6 +207,10 @@ export const useStoryStore = defineStore('story', {
       this.milestones = fresh.milestones
       this.ending = fresh.ending
       clearReunionProgress()
+      // A fresh playthrough must not inherit conclusions from the previous
+      // final-chapter investigation. This stays inside the active storage
+      // scope, so a debug reset cannot touch the normal save.
+      removeValue('side-b:final-investigation:v1')
       this.persist()
     },
 
