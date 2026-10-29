@@ -8,6 +8,7 @@
 
 import { makeAnnualArchive } from './annualArchive.js'
 import { terminalGuidePagesFor } from './terminalGuides.js'
+import { townChroniclePagesFor } from './townChronicle.js'
 
 const DEFAULT_AUTHORITY = 0.5
 
@@ -169,7 +170,8 @@ export function defineSite(config){
   const pages = Object.freeze([
     ...(config.pages || []),
     ...makeAnnualArchive(config),
-    ...terminalGuidePagesFor(config)
+    ...terminalGuidePagesFor(config),
+    ...townChroniclePagesFor(config)
   ].map((page) => normalizePage(page, site)))
   site.pages = pages
   site.pageByPath = new Map(pages.map((page) => [page.path, page]))

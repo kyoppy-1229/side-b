@@ -17,6 +17,7 @@
     "check:trial": "node scripts/check-trial.mjs",
     "check:trial-flow": "node scripts/check-trial-flow.mjs",
     "check:investigation": "node scripts/check-investigation.mjs",
+    "check:town-chronicle": "node scripts/check-town-chronicle.mjs",
     "build:contact-avatars": "node scripts/build-contact-avatars.mjs"
   },
   "dependencies": {

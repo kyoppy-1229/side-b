@@ -6,6 +6,8 @@
 // follow-up) are generated from each publication's beat. Closed and dormant
 // sites stop publishing at their actual recorded final update.
 
+import { editorialVoice } from './editorialVoices.js'
+
 const BEATS = Object.freeze({
   naviweb: ['ポータルのトップ画面', 'スマートフォン向け検索', 'おすすめリンク'],
   'asanagi-townnavi': ['駅前商店街', '公共施設の利用案内', '地域の催し'],
@@ -91,70 +93,33 @@ function pageKind(site){
   return 'article'
 }
 
-function discussionPosts(site, topic, dateText){
-  if(site.template !== 'forum' && site.template !== 'qa') return []
-  const [year, month, day] = dateText.split('-').map(Number)
-  const dateOf = (dayOffset) => `${year}/${String(month).padStart(2, '0')}/${String(day + dayOffset).padStart(2, '0')}`
-  return [
-    { name: '投稿者', date: `${dateOf(0)} 16:20`, text: `${topic}について、最近の状況や使い方を教えてください。` },
-    { name: '通りすがり', date: `${dateOf(1)} 09:12`, text: 'まず公式の案内や当時の日付を確認すると、情報を整理しやすいと思います。' },
-    { name: '常連さん', date: `${dateOf(2)} 21:48`, text: '古い手順も残っていますが、今の画面と異なる部分は読み替えが必要でした。' }
-  ]
-}
-
 function annualPage(site, year, edition){
   const beats = BEATS[site.id] || ['サイトの更新', '暮らしの話題', '利用者の声']
   const topic = beats[(year + edition) % beats.length]
   const [trend, counterpoint] = PERIODS[year]
   const report = edition === 0
-  const title = report
-    ? `${topic}の変化を振り返る――${year}年の記録`
-    : `${topic}をめぐる利用者の声と、残された課題`
   const month = (report ? 2 : 8) + ((site.id.length + year) % 4)
   const day = 6 + ((year * 3 + site.id.length + edition) % 17)
   const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-  const yearLabel = `${year}年`
-  const body = report ? [
-    `${yearLabel}、${topic}を取り巻く環境は少しずつ変わった。${trend}ことが一つの背景にある。${site.name}では、この年に見られた変化を過去の記録と照らして整理した。`,
-    { h: '現場で見えてきたこと' },
-    `${counterpoint}。急いで切り替えるより、使い続ける人が困らないことを優先した例もある。見た目の新しさだけでは判断できないという声が多かった。`,
-    `特に${topic}では、最初に情報を知った日付と、その後に内容が更新された日付が異なる。読者からは「いつの状況なのかを明示してほしい」という意見が寄せられた。`,
-    { h: '来年に向けて' },
-    `すべてが一度に変わったわけではない。${yearLabel}の記録は、以前からの利用方法がどのように残ったかを知る手掛かりにもなる。新しい情報だけでなく、当時の案内も参照できる状態を保ちたい。`,
-    { links: [{ label: '年別アーカイブ', path: '/archive' }] }
-  ] : [
-    `${yearLabel}の後半、${topic}に関する質問が読者から寄せられた。話題になったのは新しい機能そのものより、日常の中でどう使うかという点だった。`,
-    { h: '寄せられた三つの疑問' },
-    { ol: [
-      `以前の${topic}と何が変わったのか。`,
-      '更新された情報を、どこで確認できるのか。',
-      '古い資料を残すときに注意すべきことは何か。'
-    ] },
-    `${trend}一方で、${counterpoint}。新旧どちらか一方を選ぶのではなく、利用目的に合わせることが重要だと分かった。`,
-    { quote: '便利になった部分を知りたいし、以前の記録も見返せると助かる。', cite: '読者アンケートより' },
-    `編集部では質問と回答を記録し、${yearLabel}の記事一覧からたどれるようにした。ここに書かれた内容は公開当時のもので、現在の環境と一致するとは限らない。`,
-    { links: [{ label: '同年の振り返り', path: `/history/${year}/report` }] }
-  ]
+  const editorial = editorialVoice(site, year, edition, topic, trend, counterpoint, date)
 
   return {
     path: `/history/${year}/${report ? 'report' : 'voices'}`,
     kind: pageKind(site),
-    title,
-    category: site.categories?.[0]?.label || '記録',
+    title: editorial.title,
+    category: site.categories?.[(year + edition) % (site.categories?.length || 1)]?.label || '記録',
     date,
     author: site.defaultAuthor || `${site.name}編集部`,
-    tags: [topic, String(year), 'アーカイブ'],
+    tags: editorial.tags,
     keywords: [topic, String(year), `${year}年`, '当時', '過去記事'],
-    excerpt: report
-      ? `${yearLabel}の${topic}について、当時の変化と残された課題を振り返る。`
-      : `${topic}について寄せられた疑問と、その時点での回答をまとめた。`,
-    lead: report ? `${yearLabel}の出来事を、当時の記録からたどる。` : '読者の疑問を出発点に、時代背景を整理する。',
-    body,
-    posts: discussionPosts(site, topic, date),
+    excerpt: editorial.lead,
+    lead: editorial.lead,
+    body: editorial.body,
+    posts: editorial.posts || [],
     art: report && EDITORIAL_ART[year]?.sites.includes(site.id)
       ? EDITORIAL_ART[year].art
       : site.pages?.find((page) => page.art)?.art || 'abstract',
-    layout: year < 2020 ? '2010s' : '',
+    layout: year < 2020 ? '2010s' : year < 2023 ? '2020s' : '',
     views: Math.max(180, (year - 2015) * 327 + site.id.length * 47 + edition * 163),
     comments: (year + site.id.length + edition) % 23,
     weight: 0.5,
