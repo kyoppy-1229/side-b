@@ -53,6 +53,11 @@
         :active="active"
       />
 
+      <InvestigationPage
+        v-else-if="tab.pageType === PAGE.SCHOOL_TERMINAL"
+        :key="pageKey(tab, reloadKey)"
+      />
+
       <WebSitePage
         v-else-if="tab.pageType === PAGE.WEB_SITE"
         :key="pageKey(tab, reloadKey)"
@@ -106,6 +111,7 @@ import { isTrialMode } from '../trial/mode.js'
 import { isUrlBlockedInTrial } from '../trial/restrictions.js'
 import BBSView from './BBSView.vue'
 import GamePage from '../components/game/GamePage.vue'
+import InvestigationPage from '../components/pages/InvestigationPage.vue'
 import NewsArticle from './NewsArticle.vue'
 
 const route = useRoute()

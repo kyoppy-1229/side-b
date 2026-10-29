@@ -67,7 +67,23 @@ export const GENERATED_ART_KEYS = Object.freeze([
   'weather-sunny',
   'weather-cloudy',
   'weather-rain',
-  'retro-forum'
+  'retro-forum',
+  'web-2016-pc-tablet',
+  'web-2017-shopping-street',
+  'web-2018-web-design',
+  'web-2019-rail-station',
+  'web-2020-home-learning',
+  'web-2021-community-event',
+  'web-2022-retro-game-desk',
+  'web-2023-town-cafe',
+  'web-2024-data-archive',
+  'web-2025-current-city',
+  'web-town-2017-computer-room',
+  'web-town-2018-station-walkway',
+  'web-town-2020-library-desk',
+  'web-town-2021-festival-stream',
+  'web-town-2023-arcade-roof',
+  'web-town-2024-photo-archive'
 ])
 
 // Keep a one-to-one key/file contract. Reusing a generic subject here would

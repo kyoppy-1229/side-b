@@ -108,6 +108,12 @@
         </section>
       </aside>
     </template>
+
+    <nav class="chat-mobile-nav" aria-label="メッセージの画面切り替え">
+      <button type="button" :aria-current="showHome ? 'page' : undefined" @click="openHome">⌂ <span>ホーム</span></button>
+      <button type="button" :aria-current="showContacts ? 'page' : undefined" @click="openContacts">♧ <span>連絡先</span></button>
+      <button type="button" :aria-current="showThread ? 'page' : undefined" :disabled="!mizunoVisible" @click="selectConversation('mizuno')">▤ <span>会話</span></button>
+    </nav>
   </div>
 </template>
 
@@ -654,6 +660,8 @@ function displayUrl(url){
   grid-template-columns:minmax(180px, 236px) minmax(0, 1fr);
 }
 
+.chat-mobile-nav{display:none}
+
 .related{
   min-width:0;
   overflow:auto;
@@ -858,8 +866,29 @@ function displayUrl(url){
 @media (max-width:520px){
   .chat-app,
   .chat-app--home{
-    min-height:500px;
+    min-height:0;
     grid-template-columns:minmax(0, 1fr);
+    grid-template-rows:minmax(0,1fr) auto;
   }
+
+  .chat-mobile-nav{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-row:2;
+    min-height:55px;
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    border-top:1px solid #dce4ef;
+    background:#f8fafc;
+  }
+
+  .chat-mobile-nav button{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    min-width:0;min-height:48px;border:0;background:transparent;color:#64748b;font-size:22px;
+  }
+
+  .chat-mobile-nav button span{font-size:11px;font-weight:700}
+  .chat-mobile-nav button[aria-current="page"]{color:#2563eb;background:#eaf2ff}
+  .chat-mobile-nav button:disabled{opacity:.42}
+  .chat-app > :not(.chat-mobile-nav){min-height:0}
 }
 </style>

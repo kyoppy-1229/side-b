@@ -69,6 +69,55 @@
 .web-site[data-web-era="2010s"] .web-card{ border-radius:2px }
 .web-site[data-web-era="2010s"] a{ text-decoration:underline }
 
+.web-site[data-web-era="2010s"] .web-header{
+  border-top:4px solid var(--web-accent);
+  box-shadow:none;
+  background:var(--web-surface);
+}
+.web-site[data-web-era="2010s"] .web-header__bar{
+  padding-top:10px;
+  padding-bottom:10px;
+}
+.web-site[data-web-era="2010s"] .web-brand__name{
+  font-size:18px;
+  letter-spacing:0;
+}
+.web-site[data-web-era="2010s"] .web-nav__link{
+  padding:6px 10px;
+  font-size:11px;
+}
+.web-site[data-web-era="2010s"] .web-prose h2{
+  border-left-width:3px;
+  border-bottom:1px dotted var(--web-line);
+  padding-bottom:6px;
+}
+
+/* 2020-22: mobile-first transition before the full 2026 redesign. */
+.web-site[data-web-era="2020s"]{
+  --web-radius:6px;
+  --web-body-size:13.5px;
+  --web-title-size:23px;
+  --web-line:#cbd3df;
+}
+.web-site[data-web-era="2020s"] .web-header{
+  border-bottom:2px solid var(--web-accent);
+}
+.web-site[data-web-era="2020s"] .web-header__bar{
+  padding-top:12px;
+  padding-bottom:12px;
+}
+.web-site[data-web-era="2020s"] .web-brand__name{
+  font-size:19px;
+  letter-spacing:0;
+}
+.web-site[data-web-era="2020s"] .web-card{
+  border-radius:6px;
+  box-shadow:0 1px 4px rgba(20, 30, 50, .035);
+}
+.web-site[data-web-era="2020s"] .web-nav__link{
+  padding:8px 11px;
+}
+
 /* ---- shell ----------------------------------------------------------- */
 .web-shell{
   width:min(100% - 24px, var(--web-width));
@@ -98,6 +147,21 @@
   .web-header__bar{ flex-wrap:wrap }
   .web-headline{ grid-template-columns:76px minmax(0,1fr) }
   .web-grid{ grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)) }
+}
+
+/* Articles, archives and search pages share thumb-sized controls on phones. */
+@media(max-width:620px), (pointer:coarse){
+  .web-site{--web-body-size:14px;--web-title-size:22px}
+  .web-site[data-web-era="2010s"],.web-site[data-web-era="2020s"]{--web-body-size:14px}
+  .web-main{gap:14px;padding:14px 0 28px}
+  .web-pad{padding:14px}
+  .web-header__bar{flex-wrap:wrap;gap:8px}
+  .web-nav__list{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .web-nav__list::-webkit-scrollbar{display:none}
+  .web-nav__link,.web-site[data-web-era="2010s"] .web-nav__link{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;white-space:nowrap;font-size:13px}
+  .web-button{min-height:44px;font-size:13px}
+  .web-site input:not([type="checkbox"]):not([type="radio"]),.web-site textarea,.web-site select{max-width:100%;font-size:16px}
+  .web-site img{max-width:100%;height:auto}
 }
 
 .web-card{

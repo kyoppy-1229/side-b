@@ -1,5 +1,5 @@
 <template>
-  <main class="virtual-browser-stage">
+  <main class="virtual-browser-stage" :style="mobileViewportStyle">
     <section class="virtual-browser" :aria-label="`${browserName} ウィンドウ`">
       <BrowserTopBar
         :app-name="browserName"
@@ -140,8 +140,15 @@ const browser = useVirtualBrowserStore()
 const notificationsOpen = ref(false)
 const isReloading = ref(false)
 const navigation = ref(null)
+const visibleViewportHeight = ref(0)
+const mobileViewportStyle = computed(() => visibleViewportHeight.value ? { '--browser-visible-height': `${visibleViewportHeight.value}px` } : {})
 let reloadTimer = 0
 let toastTimer = 0
+
+function syncVisibleViewport(){
+  // visualViewport follows the on-screen keyboard on iOS/Android.
+  visibleViewportHeight.value = Math.round(window.visualViewport?.height || window.innerHeight)
+}
 
 const tabs = computed(() => browser.openTabs || browser.tabs || [])
 const activeTab = computed(() => browser.activeTab)
@@ -252,10 +259,19 @@ provide(VIRTUAL_BROWSER_KEY, {
   openBlankTab
 })
 
-onMounted(() => browser.initializeBrowser())
+onMounted(() => {
+  browser.initializeBrowser()
+  syncVisibleViewport()
+  window.addEventListener('resize', syncVisibleViewport)
+  window.addEventListener('orientationchange', syncVisibleViewport)
+  window.visualViewport?.addEventListener('resize', syncVisibleViewport)
+})
 onBeforeUnmount(() => {
   window.clearTimeout(reloadTimer)
   window.clearTimeout(toastTimer)
+  window.removeEventListener('resize', syncVisibleViewport)
+  window.removeEventListener('orientationchange', syncVisibleViewport)
+  window.visualViewport?.removeEventListener('resize', syncVisibleViewport)
 })
 </script>
 
@@ -310,6 +326,8 @@ onBeforeUnmount(() => {
   height:100%;
   min-height:0;
   overflow:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
   background:#fff;
   scrollbar-color:#94a3b8 #e2e8f0;
   scrollbar-width:thin;
@@ -392,19 +410,19 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width:720px){
+@media (max-width:720px), (pointer:coarse){
   .virtual-browser-stage{
     display:block;
-    min-height:100vh;
-    min-height:100dvh;
+    min-height:0;
+    height:var(--browser-visible-height,100dvh);
     padding:0;
+    overflow:hidden;
   }
 
   .virtual-browser{
     width:100%;
-    height:100vh;
-    height:100dvh;
-    min-height:520px;
+    height:100%;
+    min-height:0;
     border:0;
     border-radius:0;
     box-shadow:none;
@@ -412,6 +430,11 @@ onBeforeUnmount(() => {
 
   .status-meta{
     display:none;
+  }
+
+  .browser-status-bar{
+    min-height:23px;
+    padding-bottom:env(safe-area-inset-bottom,0px);
   }
 }
 </style>

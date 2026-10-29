@@ -32,6 +32,7 @@ export const VIRTUAL_URLS = Object.freeze({
   NEWS_20150302: 'https://tohto-news.jp/articles/2015/03/20150302-17',
   GAME_REVIVAL: 'https://side-b.local/revival',
   GAME_ORIGINAL: 'https://side-b.local/original',
+  SCHOOL_TERMINAL: 'https://grad2015.school.local/terminal',
   BLANK: 'about:blank',
   ERROR: 'retrace://error'
 })
@@ -50,6 +51,7 @@ export const VIRTUAL_PAGE_TYPES = Object.freeze({
   NEWS: 'news',
   GAME_REVIVAL: 'game-revival',
   GAME_ORIGINAL: 'game-original',
+  SCHOOL_TERMINAL: 'school-terminal',
   // Every ordinary site of the general virtual web (src/virtual-web/sites)
   // renders through this one page type; which site and which path is in the
   // tab state, not in the type.

@@ -81,9 +81,13 @@ const props = defineProps({
 
 const needsHeading = computed(() => props.page.kind === 'home' && !props.ownsHeading)
 
-// A single old article can render in the 2010s skin even on a site whose front
-// page is current (see PCのある生活), which is what page.layout carries.
-const era = computed(() => (props.page.layout === '2010s' || props.site.theme.era === '2010s' ? '2010s' : 'modern'))
+// Historical article design follows its publication era, even when reached
+// from a modern front page. Inactive retro sites keep their established skin.
+const era = computed(() => {
+  if(props.site.theme.era === '2010s') return '2010s'
+  if(['2000s', '2010s', '2020s'].includes(props.page.layout)) return props.page.layout
+  return 'modern'
+})
 
 const themeStyle = computed(() => ({
   '--web-accent': props.site.theme.accent,

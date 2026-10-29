@@ -512,6 +512,9 @@ watch(() => props.waitingInput, value => {
 }
 
 @media (max-width:620px){
+  .composer__row input{font-size:16px}
+  .composer__row button{width:44px;height:44px;flex-shrink:0}
+  .messages__next{min-height:44px}
   .messages__header{
     padding:11px 14px;
   }

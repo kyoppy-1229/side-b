@@ -269,11 +269,14 @@ function closeTab(event){
   }
 }
 
-@media (max-width:640px){
+@media (max-width:640px), (pointer:coarse){
   .browser-tab{
     min-width:122px;
     max-width:176px;
     flex-basis:152px;
+    height:44px;
   }
+
+  .tab-close{width:36px;height:36px;margin-right:3px}
 }
 </style>
