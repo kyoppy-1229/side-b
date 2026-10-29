@@ -151,7 +151,7 @@ defineExpose({
   }
 }
 
-@media (max-width:560px){
+@media (max-width:560px), (pointer:coarse){
   .browser-navigation{
     gap:5px;
     min-height:48px;
@@ -163,8 +163,8 @@ defineExpose({
   }
 
   .navigation-button{
-    width:30px;
-    height:32px;
+    width:38px;
+    height:44px;
     border-radius:8px;
   }
 

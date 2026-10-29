@@ -32,10 +32,24 @@
           </button>
         </template>
         <p v-else class="scene-dialog__idle">
-          <kbd>WASD</kbd> / <kbd>↑↓←→</kbd> 移動　·　<kbd>E</kbd> 調べる　·　<kbd>Enter</kbd> 入る
+          <span class="scene-dialog__keyboard-hint"><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> 移動　·　<kbd>E</kbd> 調べる　·　<kbd>Enter</kbd> 入る</span>
+          <span class="scene-dialog__touch-hint">方向ボタンで移動 · 近づいたら「調べる／入る」</span>
         </p>
       </div>
     </div>
+
+    <nav class="scene-touch-controls" aria-label="学校探索のタッチ操作">
+      <div class="scene-touch-pad" aria-label="移動方向">
+        <button v-for="direction in ['up', 'left', 'down', 'right']" :key="direction"
+          type="button" class="scene-touch-pad__button" :class="`scene-touch-pad__button--${direction}`"
+          :aria-label="({ up: '上へ移動', down: '下へ移動', left: '左へ移動', right: '右へ移動' })[direction]"
+          :disabled="!active" @pointerdown.prevent="startTouchDirection(direction, $event)"
+          @pointerup.prevent="endTouchDirection($event)" @pointercancel="endTouchDirection($event)"
+          @lostpointercapture="endTouchDirection($event)">{{ ({ up: '▲', down: '▼', left: '◀', right: '▶' })[direction] }}</button>
+      </div>
+      <button type="button" class="scene-touch-action" :disabled="!active || !actions.length"
+        @click="runAction(actions[0])">{{ actions.length ? actions[0].label : '調べる／入る' }}</button>
+    </nav>
 
     <div v-if="edition === 'original'" class="scene-stage__scanlines" aria-hidden="true"></div>
   </div>
@@ -82,6 +96,8 @@ const WALK_SPEED = Math.round(PX_PER_M * 4.5)
 
 const player = reactive({ x: 0, y: 0, dir: 'down', moving: false, animTime: 0, speed: WALK_SPEED })
 const keys = new Set()
+// Pointer IDs allow two direction buttons to be held together for diagonal movement.
+const touchDirections = new Map()
 let scene = null
 let highlight = null
 let contextActions = []
@@ -167,10 +183,10 @@ function blocked(nx, ny){
 
 function step(dt){
   let vx = 0, vy = 0
-  if(keys.has('left')) vx -= 1
-  if(keys.has('right')) vx += 1
-  if(keys.has('up')) vy -= 1
-  if(keys.has('down')) vy += 1
+  if(isHeld('left')) vx -= 1
+  if(isHeld('right')) vx += 1
+  if(isHeld('up')) vy -= 1
+  if(isHeld('down')) vy += 1
   const moving = vx !== 0 || vy !== 0
   player.moving = moving
   if(moving){
@@ -281,6 +297,20 @@ function primaryOfType(types){
 }
 
 // ---- input ----
+function isHeld(direction){
+  return keys.has(direction) || [...touchDirections.values()].includes(direction)
+}
+
+function startTouchDirection(direction, event){
+  if(!props.active) return
+  touchDirections.set(event.pointerId, direction)
+  if(event.currentTarget?.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId)
+}
+
+function endTouchDirection(event){
+  touchDirections.delete(event.pointerId)
+}
+
 const KEYMAP = {
   arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right',
   arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down'
@@ -320,6 +350,7 @@ function onKeyUp(e){
 // A blurred/hidden stage must not keep a held direction pressed.
 function onWindowBlur(){
   keys.clear()
+  touchDirections.clear()
 }
 
 function clearDialog(){ dialogText.value = '' }
@@ -342,10 +373,13 @@ function computeCamera(vw, vh){
   // corridor that stops at the window wall must still be framed like a full
   // one, or the player would visibly resize when changing floors.
   const frameH = s.viewHeight || s.height
-  const scale = Math.min(
-    Math.min(vw / Math.min(s.width, VIEW_W), vh / Math.min(frameH, VIEW_H)),
-    MAX_SCALE
-  )
+  // A portrait phone would otherwise shrink a student to a few pixels just
+  // to show the entire desktop-sized corridor. Follow the player more closely.
+  const portraitFloor = vw <= 720 && vw / Math.max(vh, 1) < 1.4 ? 0.78 : 0
+  const scale = Math.min(MAX_SCALE, Math.max(
+    portraitFloor,
+    Math.min(vw / Math.min(s.width, VIEW_W), vh / Math.min(frameH, VIEW_H))
+  ))
   const viewW = vw / scale
   const viewH = vh / scale
   const axis = (sceneSize, view, focus, viewport) => {
@@ -390,6 +424,7 @@ function resize(){
 let resizeObserver = null
 watch(sceneKey, () => rebuildScene())
 watch(() => props.edition, () => rebuildScene())
+watch(() => props.active, (active) => { if(!active) onWindowBlur() })
 // react to object-state / anomaly changes without respawning the player
 watch(() => [props.session.memories.length, props.session.anomalyLevel, props.session.lastInteraction], () => {
   if(scene) { scene = buildScene(props.session, props.edition); updateContext() }
@@ -418,6 +453,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', resize)
   if(resizeObserver) resizeObserver.disconnect()
   keys.clear()
+  touchDirections.clear()
 })
 </script>
 
@@ -448,5 +484,32 @@ onBeforeUnmount(() => {
 .scene-dialog__mark{color:#e0ad66;font-size:16px;line-height:1.6}
 .scene-dialog__close{border:0;background:none;color:inherit;font-size:18px;line-height:1;cursor:pointer;opacity:.7}
 .scene-dialog__close:hover{opacity:1}
-@media(max-width:640px){.scene-dialog{bottom:10px}.scene-dialog__bar,.scene-dialog__text{flex-wrap:wrap;padding:10px 12px}.scene-dialog__idle{font-size:11px}}
+.scene-dialog__touch-hint{display:none}
+.scene-touch-controls{display:none}
+@media(max-width:720px), (pointer:coarse){
+  .scene-stage__canvas{touch-action:none}
+  .scene-dialog{bottom:calc(152px + env(safe-area-inset-bottom,0px));width:calc(100% - 20px);max-height:38%;overflow-y:auto;overscroll-behavior:contain}
+  .scene-dialog__bar,.scene-dialog__text{flex-wrap:wrap;padding:9px 12px}
+  .scene-dialog__action{min-height:44px;flex:1;justify-content:center}
+  .scene-dialog__close{min-width:44px;min-height:44px}
+  .scene-dialog__idle{font-size:12px;line-height:1.5}
+  .scene-dialog__keyboard-hint{display:none}
+  .scene-dialog__touch-hint{display:inline}
+  .scene-touch-controls{position:absolute;z-index:5;inset:auto 0 0;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:8px 16px calc(12px + env(safe-area-inset-bottom,0px));pointer-events:none}
+  .scene-touch-pad{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);gap:5px;pointer-events:auto;touch-action:none}
+  .scene-touch-pad__button{border:1px solid #ffe4b77a;border-radius:12px;background:#151e2dda;color:#fff5e4;font-size:18px;box-shadow:0 3px 9px #0005;touch-action:none;user-select:none;-webkit-user-select:none}
+  .scene-touch-pad__button:active{background:#6b8fb0}
+  .scene-touch-pad__button:disabled,.scene-touch-action:disabled{opacity:.48}
+  .scene-touch-pad__button--up{grid-column:2;grid-row:1}
+  .scene-touch-pad__button--left{grid-column:1;grid-row:2}
+  .scene-touch-pad__button--down{grid-column:2;grid-row:2}
+  .scene-touch-pad__button--right{grid-column:3;grid-row:2}
+  .scene-touch-action{pointer-events:auto;min-width:112px;max-width:min(46%,210px);min-height:52px;padding:9px 12px;border:1px solid #ffe4b78c;border-radius:14px;background:#805638ef;color:#fff;font:600 13px/1.3 'Hiragino Sans',sans-serif;touch-action:manipulation;box-shadow:0 3px 9px #0005}
+  .stage-original .scene-touch-action{background:#305f83ef}
+}
+@media(max-width:720px) and (max-height:460px){
+  .scene-dialog{bottom:calc(99px + env(safe-area-inset-bottom,0px));max-height:34%}
+  .scene-touch-pad{grid-template-columns:repeat(3,40px);grid-template-rows:repeat(2,40px);gap:3px}
+  .scene-touch-action{min-height:44px}
+}
 </style>

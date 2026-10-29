@@ -159,11 +159,13 @@ function handleTabKeydown(event){
   }
 }
 
-@media (max-width:560px){
+@media (max-width:560px), (pointer:coarse){
   .browser-tabs{
-    min-height:42px;
+    min-height:48px;
     padding-right:6px;
     padding-left:6px;
   }
+
+  .new-tab-button{width:44px;height:44px;margin-bottom:0}
 }
 </style>

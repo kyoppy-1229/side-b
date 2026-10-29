@@ -149,6 +149,21 @@
   .web-grid{ grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)) }
 }
 
+/* Articles, archives and search pages share thumb-sized controls on phones. */
+@media(max-width:620px), (pointer:coarse){
+  .web-site{--web-body-size:14px;--web-title-size:22px}
+  .web-site[data-web-era="2010s"],.web-site[data-web-era="2020s"]{--web-body-size:14px}
+  .web-main{gap:14px;padding:14px 0 28px}
+  .web-pad{padding:14px}
+  .web-header__bar{flex-wrap:wrap;gap:8px}
+  .web-nav__list{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .web-nav__list::-webkit-scrollbar{display:none}
+  .web-nav__link,.web-site[data-web-era="2010s"] .web-nav__link{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;white-space:nowrap;font-size:13px}
+  .web-button{min-height:44px;font-size:13px}
+  .web-site input:not([type="checkbox"]):not([type="radio"]),.web-site textarea,.web-site select{max-width:100%;font-size:16px}
+  .web-site img{max-width:100%;height:auto}
+}
+
 .web-card{
   border:1px solid var(--web-line);
   border-radius:var(--web-radius);

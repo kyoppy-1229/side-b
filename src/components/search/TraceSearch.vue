@@ -37,7 +37,7 @@
 
         <ul v-if="suggestOpen && liveSuggestions.length" class="search-suggest" aria-label="検索候補">
           <li v-for="suggestion in liveSuggestions" :key="suggestion">
-            <button type="button" @mousedown.prevent="searchSuggestion(suggestion)">
+            <button type="button" @pointerdown.prevent="searchSuggestion(suggestion)">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="10.75" cy="10.75" r="6.5" />
                 <path d="m15.5 15.5 4.5 4.5" />
@@ -640,7 +640,7 @@ function closeSuggestSoon(){
   border:0;
 }
 
-@media (max-width:600px){
+@media (max-width:600px), (pointer:coarse){
   .search-shell,
   .trace-search--home .search-shell{
     width:min(100% - 24px, 850px);
@@ -652,9 +652,14 @@ function closeSuggestSoon(){
     border-radius:15px;
   }
 
+  .search-form input{font-size:16px}
+
   .search-form button{
+    min-height:44px;
     padding:9px 12px;
   }
+
+  .search-suggest button,.search-suggestions button{min-height:44px}
 
   .search-summary{
     align-items:flex-start;

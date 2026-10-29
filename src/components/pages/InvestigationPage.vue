@@ -30,7 +30,7 @@
       <div v-if="view === 'interviews'" class="case-interviews">
         <aside class="case-roster" aria-label="卒業生の一覧">
           <div class="case-roster__label">同級生 9人（主人公を除く）</div>
-          <button
+          <div class="case-roster__list"><button
             v-for="person in SUSPECTS"
             :key="person.id"
             class="case-person"
@@ -41,7 +41,7 @@
             <span v-else class="case-person__initial">{{ person.name.charAt(0) }}</span>
             <span class="case-person__main"><strong>{{ person.name }}</strong><small>{{ person.place }}</small></span>
             <b>{{ cleared.includes(person.id) ? '除外' : interviewed.includes(person.id) ? '聴取済' : '未聴取' }}</b>
-          </button>
+          </button></div>
         </aside>
 
         <section class="case-interview-card">
@@ -88,10 +88,12 @@
           </div>
         </div>
         <div class="case-console" role="region" aria-label="校内PCターミナル">
-          <pre v-for="(line, index) in terminalOutput" :key="index">{{ line }}</pre>
+          <div ref="terminalLog" class="case-console__output" role="log" aria-label="実行結果">
+            <pre v-for="(line, index) in terminalOutput" :key="index">{{ line }}</pre>
+          </div>
           <form class="case-command" @submit.prevent="execute(commandInput)">
             <label for="case-command-input">C:\ARCHIVE\20150301&gt;</label>
-            <input id="case-command-input" v-model="commandInput" autocomplete="off" spellcheck="false" placeholder="HELP" />
+            <input id="case-command-input" v-model="commandInput" autocomplete="off" spellcheck="false" autocapitalize="off" enterkeyhint="go" placeholder="HELP" />
             <button type="submit">実行</button>
           </form>
         </div>
@@ -123,7 +125,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useStoryStore } from '../../store/story.js'
 import { STORY_CHAPTERS } from '../../story/chapters.js'
 import { isTrialMode } from '../../trial/mode.js'
@@ -147,6 +149,7 @@ const cleared = ref(Array.isArray(saved.cleared) ? saved.cleared : [])
 const resolved = ref(Boolean(saved.resolved))
 const commandInput = ref('')
 const terminalOutput = ref([terminalIntro()])
+const terminalLog = ref(null)
 
 const selected = computed(() => SUSPECTS.find((person) => person.id === selectedId.value) || SUSPECTS[0])
 const outcome = computed(() => evaluateCase(interviewed.value, inspectedFiles.value, cleared.value))
@@ -189,6 +192,9 @@ function execute(input){
     : [...terminalOutput.value.slice(-24), `C:\\ARCHIVE\\20150301> ${command}`, result.output]
   if(result.file) addUnique(inspectedFiles, result.file)
   for(const file of result.files || []) addUnique(inspectedFiles, file)
+  nextTick(() => {
+    if(terminalLog.value) terminalLog.value.scrollTop = terminalLog.value.scrollHeight
+  })
 }
 
 function resolveCase(){
@@ -210,12 +216,41 @@ function resolveCase(){
 .case-stats{display:flex;gap:12px;flex-wrap:wrap}.case-stats span{display:grid;gap:4px;padding:10px 14px;white-space:nowrap;background:#fff;border:1px solid #cbd3d6;font-size:11px;color:#52646c}.case-stats strong{font-size:20px;color:#1b3847}
 .case-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}.case-tabs button{border:1px solid #bbc9cf;background:#fafafa;color:#405763;border-radius:5px;padding:10px 15px;font-weight:700;cursor:pointer}.case-tabs button.selected{background:#234456;color:white;border-color:#234456}
 .case-interviews{display:grid;grid-template-columns:minmax(245px,315px) minmax(0,1fr);gap:17px}.case-roster,.case-interview-card,.case-terminal-intro,.case-deduction__summary,.case-evidence-list,.case-final{background:#fff;border:1px solid #cbd3d6;border-radius:6px;box-shadow:0 3px 12px #192c3410}
-.case-roster{padding:9px;max-height:640px;overflow-y:auto}.case-roster__label{padding:9px 8px 12px;color:#60717b;font-size:11px;font-weight:700}.case-person{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:9px;border:1px solid transparent;background:white;cursor:pointer;border-radius:4px}.case-person:hover{background:#edf3f5}.case-person.selected{background:#e7f0f3;border-color:#97b5c1}.case-person img,.case-person__initial{width:45px;height:45px;object-fit:cover;border-radius:5px;background:#e0e5e7}.case-person__initial{display:grid;place-items:center}.case-person__main{display:grid;gap:2px;flex:1}.case-person strong{font-size:13px}.case-person small{color:#677984;font-size:11px}.case-person b{font-size:10px;color:#8d681d}.case-person.cleared b{color:#347c64}
+.case-roster{padding:9px;max-height:640px;overflow-y:auto}.case-roster__label{padding:9px 8px 12px;color:#60717b;font-size:11px;font-weight:700}.case-roster__list{display:grid;gap:2px}.case-person{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:9px;border:1px solid transparent;background:white;cursor:pointer;border-radius:4px}.case-person:hover{background:#edf3f5}.case-person.selected{background:#e7f0f3;border-color:#97b5c1}.case-person img,.case-person__initial{width:45px;height:45px;object-fit:cover;border-radius:5px;background:#e0e5e7}.case-person__initial{display:grid;place-items:center}.case-person__main{display:grid;gap:2px;flex:1}.case-person strong{font-size:13px}.case-person small{color:#677984;font-size:11px}.case-person b{font-size:10px;color:#8d681d}.case-person.cleared b{color:#347c64}
 .case-interview-card{padding:clamp(18px,3vw,32px);min-height:450px}.case-interview-card__profile{display:flex;align-items:center;gap:18px;border-bottom:1px solid #e1e7e9;padding:15px 0 22px;margin-bottom:18px}.case-interview-card__profile img{height:92px;width:92px;object-fit:cover;border-radius:8px}.case-interview-card__profile h2{font-size:23px;margin:0 0 5px}.case-interview-card__profile p{color:#62717a;margin:0;font-size:12px}.case-empty{padding:25px 5px;color:#586a73}.case-dialogue{background:#f1f4f5;border:1px solid #d9e2e5;padding:12px 15px;border-radius:6px;margin:12px 0;max-width:80%;font-size:14px}.case-dialogue--reply{margin-left:auto;background:#e9f2ee;border-color:#cfe2d9}.case-dialogue span{font-size:10px;font-weight:700;color:#627581}.case-dialogue p{margin:5px 0;line-height:1.75}
 .case-primary,.case-secondary{border:0;background:#244a5c;color:#fff;border-radius:5px;padding:10px 16px;cursor:pointer;font-weight:700;font-size:12px}.case-secondary{background:#ecf0f2;color:#2d4a59;border:1px solid #bdcbd1}.case-primary:disabled{cursor:not-allowed;opacity:.45}.case-verification{background:#f4f7f4;border-left:3px solid #659984;padding:13px 15px;margin-top:23px;display:grid;gap:7px}.case-verification strong{font-size:13px}.case-verification p,.case-verification small{font-size:12px;color:#50646a;margin:0}.case-verification button{justify-self:start}
 .case-terminal-intro{padding:20px 22px;margin-bottom:12px}.case-terminal-intro h2{margin:0 0 7px;font-size:19px}.case-terminal-intro p{font-size:12px;color:#52666f;line-height:1.7}.case-quick-commands{display:flex;gap:8px}.case-quick-commands button{border:1px solid #b9c5cb;border-radius:4px;background:#edf3f5;padding:6px 12px;font-family:monospace;cursor:pointer}
-.case-console{height:460px;background:#091720;color:#b4e6ca;border:1px solid #1c3440;overflow-y:auto;padding:20px 22px;box-shadow:inset 0 0 50px #0009;font:13px/1.7 'Consolas','Courier New',monospace}.case-console pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 14px}.case-command{display:flex;flex-wrap:wrap;align-items:center;gap:9px}.case-command label{white-space:nowrap;color:#7bc5a2}.case-command input{flex:1;min-width:140px;background:transparent;color:#e5ffee;border:0;outline:none;font:inherit}.case-command button{background:#244f44;color:white;border:1px solid #417560;border-radius:3px;padding:4px 9px;cursor:pointer}.case-terminal-note{font-size:12px;color:#576b74}.case-terminal-note code{background:#dce3e5;padding:2px 5px}
+.case-console{height:460px;display:flex;flex-direction:column;min-height:0;background:#091720;color:#b4e6ca;border:1px solid #1c3440;padding:16px 20px;box-shadow:inset 0 0 50px #0009;font:13px/1.7 'Consolas','Courier New',monospace}.case-console__output{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.case-console pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 14px}.case-command{display:flex;flex-wrap:wrap;align-items:center;gap:9px;flex-shrink:0;padding-top:10px;border-top:1px solid #ffffff22}.case-command label{white-space:nowrap;color:#7bc5a2}.case-command input{flex:1;min-width:140px;background:transparent;color:#e5ffee;border:0;outline:none;font:inherit}.case-command button{background:#244f44;color:white;border:1px solid #417560;border-radius:3px;padding:8px 12px;cursor:pointer}.case-terminal-note{font-size:12px;color:#576b74}.case-terminal-note code{background:#dce3e5;padding:2px 5px}
 .case-deduction{display:grid;grid-template-columns:minmax(260px,1fr) minmax(280px,1fr);gap:15px}.case-deduction__summary,.case-final{padding:22px}.case-deduction h2,.case-final h3{margin-top:0}.case-deduction p{font-size:13px;line-height:1.8;color:#556771}.case-progress{background:#e1e9e9;border-radius:9px;height:9px;overflow:hidden}.case-progress span{display:block;background:#3b8e74;height:100%;transition:width .2s}.case-evidence-list{list-style:none;margin:0;padding:12px 20px;grid-row:span 2}.case-evidence-list li{display:flex;justify-content:space-between;gap:9px;border-bottom:1px solid #e2e8e9;padding:11px 2px;font-size:12px}.case-evidence-list li:last-child{border-bottom:0}.case-evidence-list strong{color:#9a6b23;font-size:11px}.case-evidence-list strong.complete{color:#27816b}.case-resolution{padding:12px 16px;background:#e6f0eb;border:1px solid #b4d4c3;margin-top:15px}.case-resolution strong{color:#2b6750}
-@media(max-width:760px){.case-header{align-items:stretch;flex-direction:column}.case-header h1{font-size:24px}.case-interviews,.case-deduction{grid-template-columns:1fr}.case-roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}.case-roster__label{grid-column:1/-1}.case-person{gap:6px}.case-person img,.case-person__initial{height:36px;width:36px}.case-person b{display:none}.case-interview-card{min-height:0}.case-evidence-list{grid-row:auto}.case-dialogue{max-width:95%}}
-@media(max-width:420px){.case-roster{grid-template-columns:1fr}.case-stats span{flex:1}.case-interview-card__profile img{height:68px;width:68px}}
+@media(max-width:760px){
+  .case-page{padding:16px 12px 24px}
+  .case-header{align-items:stretch;flex-direction:column;gap:12px}
+  .case-header h1{font-size:24px}
+  .case-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .case-stats span{min-width:0;padding:8px 6px;font-size:10px;white-space:normal}
+  .case-stats strong{font-size:18px}
+  .case-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .case-tabs button{min-width:0;min-height:44px;padding:7px 4px;font-size:11px;line-height:1.4}
+  .case-interviews,.case-deduction{grid-template-columns:minmax(0,1fr)}
+  .case-roster{display:block;max-height:none;overflow:hidden;padding:8px}
+  .case-roster__label{padding:5px 6px 9px}
+  .case-roster__list{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,65%);grid-template-columns:none;gap:7px;overflow-x:auto;scroll-snap-type:x proximity;overscroll-behavior-x:contain;padding-bottom:7px}
+  .case-person{gap:7px;min-height:66px;scroll-snap-align:start;border-color:#dce3e7}
+  .case-person img,.case-person__initial{flex-shrink:0;height:42px;width:42px}
+  .case-person__main{min-width:0}
+  .case-person small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .case-person b{display:none}
+  .case-interview-card{min-height:0}
+  .case-evidence-list{grid-row:auto}
+  .case-dialogue{max-width:95%}
+  .case-quick-commands{flex-wrap:wrap}
+  .case-quick-commands button{min-height:44px}
+  .case-console{height:min(52dvh,390px);min-height:230px;padding:10px 12px}
+  .case-command{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:5px}
+  .case-command label{grid-column:1/-1;font-size:11px}
+  .case-command input{min-width:0;width:100%;font-size:16px}
+  .case-command button{min-height:44px}
+  .case-primary,.case-secondary{min-height:44px}
+}
+@media(max-width:420px){.case-interview-card__profile img{height:68px;width:68px}}
 </style>

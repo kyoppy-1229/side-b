@@ -31,7 +31,7 @@
       type="button"
       aria-label="入力内容を消去"
       title="入力内容を消去"
-      @mousedown.prevent
+      @pointerdown.prevent
       @click="clearAddress"
     >
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -206,9 +206,9 @@ defineExpose({
   border:0;
 }
 
-@media (max-width:560px){
+@media (max-width:560px), (pointer:coarse){
   .address-form{
-    height:36px;
+    height:44px;
     border-radius:10px;
   }
 
@@ -217,7 +217,7 @@ defineExpose({
   }
 
   .address-input{
-    font-size:12px;
+    font-size:16px;
   }
 }
 </style>

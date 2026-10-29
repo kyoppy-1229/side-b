@@ -426,5 +426,15 @@ onBeforeUnmount(() => {
 .edition-original .game-clear__close{border-color:#526981;background:#152130;color:#c7d8eb}
 @keyframes game-clear-in{from{opacity:0}to{opacity:1}}
 @keyframes anomaly-pulse{50%{opacity:.5}}
-@media(max-width:640px){.hud-chips{top:10px;left:10px}.chip{padding:5px 10px;font-size:12px}.hud-tools{top:10px;right:10px;gap:4px}.hud-progress{display:none}}
+@media(max-width:720px), (pointer:coarse){
+  .hud-chips{top:8px;left:10px;right:10px;max-width:calc(100% - 20px)}
+  .chip{min-width:0;padding:6px 10px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip--edition{display:none}
+  .hud-tools{top:44px;right:10px;gap:5px}
+  .hud-floors{display:none}
+  .hud-progress{display:inline-flex;min-height:44px;padding:8px 9px}
+  .hud-btn{width:44px;height:44px;font-size:19px}
+  .game-memories,.game-settings{top:98px;right:10px;max-height:calc(100% - 110px);width:min(380px,calc(100% - 20px));padding:16px;overflow-y:auto;overscroll-behavior:contain}
+  .game-memories__close,.game-settings__close{min-width:44px;min-height:44px;top:2px;right:2px}
+}
 </style>
